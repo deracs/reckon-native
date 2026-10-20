@@ -15,9 +15,9 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.7.1</string>
+	<string>0.7.2</string>
 	<key>CFBundleVersion</key>
-	<string>13</string>
+	<string>14</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>15.0</string>
 	<key>LSUIElement</key>
@@ -30,7 +30,7 @@
 		<true/>
 	</dict>
 	<key>SUFeedURL</key>
-	<string>https://api.github.com/repos/deracs/reckon-native/contents/updates/appcast-arm64.xml?ref=main</string>
+	<string>https://raw.githubusercontent.com/deracs/reckon-native/main/updates/appcast-arm64.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>VUtZH1qFgpGnetY+Tx655vT5mpvhosAU5nwHaL9C7MY=</string>
 	<key>SUEnableAutomaticChecks</key>

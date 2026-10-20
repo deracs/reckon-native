@@ -82,11 +82,11 @@ The completed app has no dependency on source directories or build tools. Person
 
 ## GitHub builds and releases
 
-The public repository is [deracs/reckon-native](https://github.com/deracs/reckon-native). Pushes to `main` and pull requests build and check Apple silicon and Intel variants. The workflow uses synthetic bank fixtures, needs no Akahu tokens, and uploads ZIPs, SHA-256 checksums, and public update-signature metadata as Actions artifacts. A version tag such as `v0.7.1` creates a GitHub release after both builds and their checks pass. The release job signs and publishes the architecture-specific Sparkle feeds in `updates/` on `main`. The tag must match `CFBundleShortVersionString` in `Resources/Info.plist`.
+The public repository is [deracs/reckon-native](https://github.com/deracs/reckon-native). Pushes to `main` and pull requests build and check Apple silicon and Intel variants. The workflow uses synthetic bank fixtures, needs no Akahu tokens, and uploads ZIPs, SHA-256 checksums, and public update-signature metadata as Actions artifacts. A version tag such as `v0.7.2` creates a GitHub release after both builds and their checks pass. The release job signs and publishes the architecture-specific Sparkle feeds in `updates/` on `main`. The tag must match `CFBundleShortVersionString` in `Resources/Info.plist`.
 
 ```sh
-git tag v0.7.1
-git push origin v0.7.1
+git tag v0.7.2
+git push origin v0.7.2
 ```
 
 Release access follows the repository’s visibility. The ZIP contains only the app and runtime; each user connects their own Akahu tokens. It does not export a Keychain entry or local history. A Mac without Touch ID cannot unlock the current app.
@@ -149,3 +149,5 @@ Feeds and archives use Ed25519 signatures with `SURequireSignedFeed` and `SUVeri
 The update-signing key is not an Apple Developer ID certificate. Personal builds remain ad-hoc signed; macOS may request Keychain access after a changed binary. Developer ID signing and notarization are still needed for normal public distribution. Sparkle disables system profiling here. GitHub still receives ordinary request metadata, such as an IP address and app-version user agent, when an installation checks for updates.
 
 After a release publishes its signed feeds, fast-forward the local checkout to include the automated feed commit before the next change. This preserves the published feed files.
+
+Update feeds use GitHub’s raw-file host because Sparkle requests RSS, and the GitHub Contents API returns JSON under that Accept header. Initial builds through 0.7.1 require a one-time manual installation of 0.7.2 to switch feed hosts. Later updates use Sparkle.

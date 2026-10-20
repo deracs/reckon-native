@@ -20,7 +20,7 @@ struct ReckonUpdateFeedTests {
             try bankExpect(!ReckonUpdateFeed.isAllowedDownload(URL(string: text)!))
         }
         try bankExpect(ReckonUpdateFeed.feedURL.scheme == "https")
-        try bankExpect(ReckonUpdateFeed.feedURL.host == "api.github.com")
+        try bankExpect(ReckonUpdateFeed.feedURL.host == "raw.githubusercontent.com")
         try bankExpect(ReckonUpdateFeed.feedURL.user == nil && ReckonUpdateFeed.feedURL.password == nil)
         #if arch(arm64)
         try bankExpect(ReckonUpdateFeed.feedURL.path.hasSuffix("appcast-arm64.xml"))

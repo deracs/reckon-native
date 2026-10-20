@@ -19,7 +19,6 @@ final class ReckonSoftwareUpdates: NSObject, ObservableObject, SPUUpdaterDelegat
         super.init()
         guard !isDemo else { return }
         controller = SPUStandardUpdaterController(startingUpdater: false, updaterDelegate: self, userDriverDelegate: nil)
-        configureHeaders()
         let updater = controller.updater
         updater.sendsSystemProfile = false
         updater.userAgentString = "Reckon/\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown")"
@@ -73,10 +72,6 @@ final class ReckonSoftwareUpdates: NSObject, ObservableObject, SPUUpdaterDelegat
 
     func updater(_ updater: SPUUpdater, didAbortWithError error: any Error) {
         message = "Could not check or install an update. Check your internet connection and try again."
-    }
-
-    private func configureHeaders() {
-        controller.updater.httpHeaders = ["Accept": "application/vnd.github.raw+json", "X-GitHub-Api-Version": "2022-11-28"]
     }
 
     private func refreshSettings() {
