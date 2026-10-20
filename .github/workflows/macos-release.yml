@@ -45,9 +45,11 @@ jobs:
         run: ./scripts/build-app.sh
       - name: Swift checks
         run: swift run -Xswiftc -warnings-as-errors ReckonChecks
-      - name: Backend integration checks with synthetic bank data
-        run: node --test Tests/backend-integration.test.mjs
-      - name: Verify and package app
+      - name: Backend and update-signature checks with synthetic data
+        run: node --test Tests/backend-integration.test.mjs Tests/software-updates.test.mjs
+      - name: Verify, sign and package app
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ github.event_name != 'pull_request' && secrets.SPARKLE_PRIVATE_KEY || '' }}
         run: ./scripts/package-release.sh
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
@@ -57,10 +59,10 @@ jobs:
           retention-days: 14
 
   release:
-    name: Publish private GitHub release
+    name: Publish release and signed update feeds
     if: startsWith(github.ref, 'refs/tags/v')
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: macos-15
     permissions:
       contents: write
     steps:
@@ -72,9 +74,20 @@ jobs:
           pattern: Reckon-macOS-*
           path: release
           merge-multiple: true
-      - name: Create release with both Mac architectures
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.21.0'
+      - name: Resolve pinned Sparkle signing tools
+        run: swift package resolve
+      - name: Create draft release with both Mac architectures
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.ref_name }}
-        run: gh release create "$RELEASE_TAG" release/* --verify-tag --title "Reckon $RELEASE_TAG" --notes-file .github/release-notes.md
+        run: gh release create "$RELEASE_TAG" release/*.zip release/*.sha256 --draft --verify-tag --title "Reckon $RELEASE_TAG" --notes-file .github/release-notes.md
+      - name: Sign feeds and publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: node scripts/publish-update-feeds.mjs "$RELEASE_TAG" --publish

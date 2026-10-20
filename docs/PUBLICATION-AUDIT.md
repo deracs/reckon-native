@@ -15,3 +15,11 @@ The privacy checker examines the Git file list, source contents and (when reques
 This is a targeted source and artifact audit, not a guarantee that any future file is safe. Automated patterns cannot identify every name, amount, free-text note, or secret format. Review any new fixtures, screenshots, crash logs, release attachments and Git history before changing visibility. If a secret is ever committed or uploaded, deleting it in a later commit is insufficient: revoke it and remove it from history and attachments.
 
 The source snapshot contains the author’s Reckon implementation and third-party dependencies. The build includes third-party license notices. Decide on a source-code license before offering this repository as an open-source project. The current personal app is ad-hoc signed; public distribution should also add Developer ID signing and notarization.
+
+## Software updates — 20 October 2026
+
+Sparkle checks only architecture-specific signed feeds in this repository. Update requests contain the app version and normal network metadata, not bank data or a system profile. The app validates Ed25519 archive signatures before extraction and restricts archive URLs to this repository's GitHub release-asset API.
+
+A dedicated update-signing private key is stored in the maintainer's Keychain and in the repository's GitHub Actions signing secret. It is a software-release credential, separate from the user's Akahu credentials. Only the public verification key and signatures enter source, feeds and app bundles. CI compares the secret against the bundle public key and scans the package for accidental secret inclusion. Third-party Sparkle framework links are permitted only when they resolve within the bundle; the privacy check still rejects escaping links.
+
+If the repository remains private, each installation needs a fine-grained GitHub token restricted to this repository with Contents read access. It is optional for public repositories and stays in the local Keychain under a separate service. It is never embedded in a feed, app bundle, source file or URL. Making the repository public requires an explicit visibility decision; the updater does not change repository permissions.

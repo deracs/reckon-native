@@ -32,6 +32,7 @@ private struct BankCheck {
         let backend = BundledBackendTests()
         let journal = BankJournalTests()
         var checks: [BankCheck] = [
+            BankCheck(name: "Software updates reject foreign hosts, repositories and credential URLs") { try ReckonUpdateFeedTests().restrictsUpdateDownloadsToThisRepository() },
             BankCheck(name: "Balance limit crossings and notification opt-out") { try journal.balanceLimitsOnlyAlertOnCrossings() },
             BankCheck(name: "Charge increase baselines and deduplication") { try journal.chargeIncreasesDoNotAlertOnFirstObservationOrRepeats() },
             BankCheck(name: "Ninety daily observations with currency separation") { try journal.historyKeepsNinetyDailyObservationsAndPreservesCurrencies() },

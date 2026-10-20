@@ -4,18 +4,20 @@ import SwiftUI
 struct ReckonPreferencesView: View {
     @ObservedObject var store: BankDashboardStore
     @ObservedObject var shortcut: ReckonKeyboardShortcut
+    @ObservedObject var softwareUpdates: ReckonSoftwareUpdates
     let close: () -> Void
     @State private var selectedTab = "Connection"
+    @State private var githubToken = ""
     @State private var limits: [String: String] = [:]
     @State private var changingPermission = false
-    private let tabs = ["Connection", "Alerts", "Controls"]
+    private let tabs = ["Connection", "Alerts", "Controls", "Updates"]
 
     var body: some View {
         VStack(spacing: 12) {
             HStack(spacing: 6) {
                 ForEach(tabs, id: \.self) { tab in
                     Button { selectedTab = tab } label: {
-                        Image(systemName: tab == "Connection" ? "link" : tab == "Alerts" ? "bell" : "slider.horizontal.3")
+                        Image(systemName: tab == "Connection" ? "link" : tab == "Alerts" ? "bell" : tab == "Updates" ? "arrow.down.circle" : "slider.horizontal.3")
                             .font(.system(size: 17)).frame(maxWidth: .infinity).frame(height: 30)
                             .contentShape(Rectangle())
                     }
@@ -32,6 +34,8 @@ struct ReckonPreferencesView: View {
                     ReckonConnectionView(store: store, closeConnection: close)
                 } else if selectedTab == "Alerts" {
                     alertSettings.padding(24)
+                } else if selectedTab == "Updates" {
+                    updateSettings.padding(24)
                 } else {
                     controls.padding(24)
                 }
@@ -97,6 +101,40 @@ struct ReckonPreferencesView: View {
                     }
                 }
             }
+        }
+    }
+
+    private var updateSettings: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(spacing: 6) {
+                Text("Software updates").font(.system(.title2, design: .serif).weight(.semibold))
+                ReckonInfoHelp(subject: "Software updates", explanation: "Checks GitHub every six hours. Sparkle verifies signed feeds and update archives before installation. Updates preserve your Keychain connection, encrypted history and login preference. No bank data or system profile is sent to GitHub.")
+            }
+            Text("Reckon \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown")")
+                .font(.caption).foregroundStyle(.secondary)
+            Button("Check for Updates…") { softwareUpdates.checkForUpdates() }
+                .disabled(store.isDemo || !softwareUpdates.canCheckForUpdates)
+            Toggle("Automatically check for updates", isOn: Binding(
+                get: { softwareUpdates.automaticallyChecks }, set: { softwareUpdates.setAutomaticChecks($0) }))
+                .disabled(store.isDemo)
+            Toggle("Download and install updates automatically", isOn: Binding(
+                get: { softwareUpdates.automaticallyInstalls }, set: { softwareUpdates.setAutomaticInstalls($0) }))
+                .disabled(store.isDemo || !softwareUpdates.automaticallyChecks)
+            Divider()
+            HStack(spacing: 6) {
+                Text("Private GitHub access").font(.headline)
+                ReckonInfoHelp(subject: "Private GitHub access", explanation: "Public repositories need no token. For a private repository, create a fine-grained GitHub token limited to reckon-native with Contents: Read-only. It stays in this Mac’s Keychain, separate from your Akahu tokens. Never paste an Akahu token here.")
+            }
+            SecureField(softwareUpdates.hasGitHubToken ? "Replace saved GitHub token" : "GitHub token, if required", text: $githubToken)
+                .textFieldStyle(.roundedBorder)
+            HStack {
+                Button("Save access") { softwareUpdates.saveGitHubToken(githubToken); githubToken = "" }
+                    .disabled(store.isDemo || githubToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                if softwareUpdates.hasGitHubToken {
+                    Button("Remove access") { softwareUpdates.removeGitHubToken() }.disabled(store.isDemo)
+                }
+            }
+            if let message = softwareUpdates.message { Text(message).font(.caption).foregroundStyle(.secondary) }
         }
     }
 

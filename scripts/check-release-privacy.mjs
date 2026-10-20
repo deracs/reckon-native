@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process"
-import { readFile, readdir, stat } from "node:fs/promises"
+import { readFile, readdir, stat, realpath } from "node:fs/promises"
 import { homedir } from "node:os"
 import { dirname, relative, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
@@ -16,6 +16,14 @@ if (envIndex >= 0) {
   if (!args[envIndex + 1]) throw new Error("Privacy check requires an env file path.")
   const values = parseEnv(await readFile(resolve(args[envIndex + 1]), "utf8"))
   knownSecrets = Object.entries(values).filter(([key, value]) => /TOKEN|SECRET|PASSWORD|API_KEY|DATABASE_URL/.test(key) && value.length >= 12).map(([, value]) => Buffer.from(value))
+}
+if (process.env.SPARKLE_PRIVATE_KEY) knownSecrets.push(Buffer.from(process.env.SPARKLE_PRIVATE_KEY.trim()))
+const signingIndex = args.indexOf("--signing-key-file")
+if (signingIndex >= 0) {
+  if (!args[signingIndex + 1]) throw new Error("Privacy check requires a signing key path.")
+  const signingKey = (await readFile(resolve(args[signingIndex + 1]), "utf8")).trim()
+  if (!signingKey) throw new Error("Privacy check requires a nonempty signing key.")
+  knownSecrets.push(Buffer.from(signingKey))
 }
 const personalHome = Buffer.from(homedir())
 const personalSourcePath = personalHome.length > 6 && homedir() !== "/Users/runner" && homedir() !== "/home/runner"
@@ -49,7 +57,13 @@ if (appIndex >= 0) {
     for (const entry of await readdir(directory, { withFileTypes: true })) {
       const path = resolve(directory, entry.name)
       if (entry.isDirectory()) await inspectBundle(path)
-      else if (entry.isSymbolicLink()) issues.push(`app/${relative(app, path)}: unexpected symbolic link`)
+      else if (entry.isSymbolicLink()) {
+        const target = await realpath(path)
+        const resolved = relative(app, target)
+        if (resolved === ".." || resolved.startsWith("../") || !relative(app, path).startsWith("Contents/Frameworks/Sparkle.framework/")) {
+          issues.push(`app/${relative(app, path)}: unsafe symbolic link`)
+        }
+      }
       else if ((await stat(path)).size > 0) inspect(`app/${relative(app, path)}`, await readFile(path))
       if (/^\.env(?:\.|$)|\.(?:enc|sqlite|sqlite3|db|p12|pfx|pem|key|mobileprovision|log)$/.test(entry.name)) issues.push(`app/${relative(app, path)}: private file`)
     }

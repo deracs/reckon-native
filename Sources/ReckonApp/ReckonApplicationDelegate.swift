@@ -9,6 +9,7 @@ final class ReckonApplicationDelegate: NSObject, NSApplicationDelegate, NSWindow
     private var store: BankDashboardStore!
     private var appLock: ReckonAppLock!
     private var shortcut: ReckonKeyboardShortcut!
+    private var softwareUpdates: ReckonSoftwareUpdates!
     private var statusItem: NSStatusItem!
     private let popover = NSPopover()
     private var settingsWindow: NSWindow?
@@ -21,6 +22,7 @@ final class ReckonApplicationDelegate: NSObject, NSApplicationDelegate, NSWindow
         let isDemo = ProcessInfo.processInfo.arguments.contains("--demo")
         store = BankDashboardStore(isDemo: isDemo)
         appLock = ReckonAppLock(authenticator: isDemo ? ReckonDemoAuthentication() : ReckonTouchID())
+        softwareUpdates = ReckonSoftwareUpdates(isDemo: isDemo)
         shortcut = ReckonKeyboardShortcut()
         shortcut.onActivate = { [weak self] in self?.toggleDashboard() }
         UNUserNotificationCenter.current().delegate = self
@@ -46,6 +48,9 @@ final class ReckonApplicationDelegate: NSObject, NSApplicationDelegate, NSWindow
         let menu = NSMenu()
         let applicationItem = NSMenuItem()
         let applicationMenu = NSMenu()
+        let updateItem = applicationMenu.addItem(withTitle: "Check for Updates…", action: #selector(checkForSoftwareUpdates), keyEquivalent: "")
+        updateItem.target = self
+        applicationMenu.addItem(.separator())
         applicationMenu.addItem(withTitle: "Quit Reckon", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         applicationItem.submenu = applicationMenu
         menu.addItem(applicationItem)
@@ -68,6 +73,8 @@ final class ReckonApplicationDelegate: NSObject, NSApplicationDelegate, NSWindow
         openDashboard()
         return false
     }
+
+    @objc private func checkForSoftwareUpdates() { softwareUpdates.checkForUpdates() }
 
     @objc private func toggleDashboard() {
         if appLock.state == .authenticating {
@@ -149,8 +156,8 @@ final class ReckonApplicationDelegate: NSObject, NSApplicationDelegate, NSWindow
     private func showSettings() {
         guard appLock.isUnlocked else { return }
         let window = NSWindow(contentViewController: NSHostingController(rootView: ReckonProtectedView(appLock: appLock) { [weak self, store = self.store!] in
-            if let shortcut = self?.shortcut {
-                ReckonPreferencesView(store: store, shortcut: shortcut, close: { [weak self] in self?.settingsWindow?.close() })
+            if let shortcut = self?.shortcut, let softwareUpdates = self?.softwareUpdates {
+                ReckonPreferencesView(store: store, shortcut: shortcut, softwareUpdates: softwareUpdates, close: { [weak self] in self?.settingsWindow?.close() })
             }
         }))
         window.title = "Reckon Settings"

@@ -13,4 +13,7 @@ mkdir -p dist/release
 archive="Reckon-${version}-macOS-$(uname -m).zip"
 ditto -c -k --keepParent --sequesterRsrc "$app_dir" "dist/release/$archive"
 (cd dist/release && shasum -a 256 "$archive" > "$archive.sha256")
+if [[ -n "${SPARKLE_PRIVATE_KEY:-}" || -z "${CI:-}" || "${GITHUB_EVENT_NAME:-}" != "pull_request" ]]; then
+  node scripts/sign-release-update.mjs "dist/release/$archive"
+fi
 echo "Packaged dist/release/$archive"
