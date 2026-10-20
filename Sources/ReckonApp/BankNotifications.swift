@@ -11,12 +11,17 @@ final class BankNotifications {
     }
 
     func permissionDescription() async -> String {
-        let settings = await center.notificationSettings()
-        switch settings.authorizationStatus {
-        case .authorized, .provisional, .ephemeral: return "Notifications allowed. Banners hide account names and amounts."
-        case .denied: return "Notifications blocked in System Settings → Notifications → Reckon."
-        case .notDetermined: return "Enable alerts to request permission."
-        @unknown default: return "Check Reckon in System Settings → Notifications."
+        await withCheckedContinuation { continuation in
+            center.getNotificationSettings { settings in
+                let message: String
+                switch settings.authorizationStatus {
+                case .authorized, .provisional, .ephemeral: message = "Notifications allowed. Banners hide account names and amounts."
+                case .denied: message = "Notifications blocked in System Settings → Notifications → Reckon."
+                case .notDetermined: message = "Enable alerts to request permission."
+                @unknown default: message = "Check Reckon in System Settings → Notifications."
+                }
+                continuation.resume(returning: message)
+            }
         }
     }
 

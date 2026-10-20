@@ -82,11 +82,11 @@ The completed app has no dependency on source directories or build tools. Person
 
 ## GitHub builds and releases
 
-The private repository is [deracs/reckon-native](https://github.com/deracs/reckon-native). Pushes to `main` and pull requests build and check Apple silicon and Intel variants. The workflow uses synthetic bank fixtures, needs no Akahu tokens, and uploads ZIPs plus SHA-256 checksums as Actions artifacts. A version tag such as `v0.6.0` creates a GitHub release after both builds and their checks pass. The tag must match `CFBundleShortVersionString` in `Resources/Info.plist`.
+The private repository is [deracs/reckon-native](https://github.com/deracs/reckon-native). Pushes to `main` and pull requests build and check Apple silicon and Intel variants. The workflow uses synthetic bank fixtures, needs no Akahu tokens, and uploads ZIPs plus SHA-256 checksums as Actions artifacts. A version tag such as `v0.6.1` creates a GitHub release after both builds and their checks pass. The tag must match `CFBundleShortVersionString` in `Resources/Info.plist`.
 
 ```sh
-git tag v0.6.0
-git push origin v0.6.0
+git tag v0.6.1
+git push origin v0.6.1
 ```
 
 Release access follows the repository’s visibility. The ZIP contains only the app and runtime; each user connects their own Akahu tokens. It does not export a Keychain entry or local history. A Mac without Touch ID cannot unlock the current app.

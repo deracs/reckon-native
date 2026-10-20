@@ -17,7 +17,7 @@ if [[ ! -f "$node_license" ]]; then
     print -u2 "Node LICENSE was not found. Set RECKON_NODE_LICENSE to the runtime license file."
     exit 1
 fi
-if otool -L "$node_binary" | tail -n +2 | awk '{print $1}' | rg -v '^(/usr/lib/|/System/Library/)' >/dev/null; then
+if ! otool -L "$node_binary" | awk 'NR > 1 && $1 !~ /^\/(usr\/lib|System\/Library)\// { foreign=1 } END { exit foreign }'; then
     print -u2 "Use a standalone Node runtime that depends only on macOS system libraries."
     exit 1
 fi
