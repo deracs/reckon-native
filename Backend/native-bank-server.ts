@@ -14,7 +14,7 @@ import {
   SpendingByCategory,
   Transaction,
 } from "@reckon/domain"
-import { Effect, Redacted, Schema, SchemaGetter, type Scope } from "effect"
+import { Effect, Redacted, Schema, type Scope } from "effect"
 import * as HttpServerRequest from "effect/http/HttpServerRequest"
 import * as HttpServerResponse from "effect/http/HttpServerResponse"
 import * as UrlParams from "effect/http/UrlParams"
@@ -34,12 +34,7 @@ type NativeRoute = (
   snapshotId: BankSnapshotId | undefined,
 ) => Effect.Effect<HttpServerResponse.HttpServerResponse, NativeHttpError | BankDataError>
 
-const BooleanFromString = Schema.Literals(["true", "false"]).pipe(
-  Schema.decodeTo(Schema.Boolean, {
-    decode: SchemaGetter.transform((value) => value === "true"),
-    encode: SchemaGetter.transform((value) => (value ? "true" : "false")),
-  }),
-)
+const BooleanFromString = Schema.toCodecStringTree(Schema.Boolean)
 const excludeTransfers = { excludeTransfers: Schema.optionalKey(BooleanFromString) }
 const RangeQuery = Schema.Struct({ ...DateRange, ...excludeTransfers })
 const QueryValues = Schema.Record(Schema.String, Schema.String)
