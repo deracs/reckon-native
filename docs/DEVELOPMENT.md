@@ -51,7 +51,7 @@ The Swift checks use an executable runner because the standalone Command Line To
 
 ## TypeScript tooling
 
-The backend pins Effect and `@effect/platform-node` to 4.0.5. It uses Effect HTTP modules, the Node server adapter, and the Node runtime. `FetchHttpClient` uses the Fetch API in Node without a separate Undici dependency.
+The backend pins Effect and `@effect/platform-node` to 4.0.5. It uses Effect HTTP modules, the Node server adapter, and the Node runtime. `NodeHttpClient.layerNodeHttp` uses Node’s HTTP/HTTPS agents, whose lifetime belongs to the Effect scope.
 
 `pnpm check` runs TypeScript, Oxlint with the recommended Effect rules, and the Oxfmt format check. The separate commands are `pnpm typecheck`, `pnpm lint`, and `pnpm fmt:check`. Oxlint warnings and errors fail the check.
 
@@ -99,7 +99,7 @@ Merchant logos use Akahu’s optional [transaction metadata](https://developers.
 
 The backend uses Akahu source data. It does not use the web app's database, saved category overrides, or category rules. The summary endpoints combine currencies without conversion. If the accounts include foreign currencies, the app labels those totals and omits the dollar symbol. Account balances retain their currency.
 
-The app reads stats every five minutes. **Reload stats** reads them immediately. Neither action requests a bank refresh. Failed summary endpoints leave account balances visible. A failed account request retains the previous snapshot and displays an error. After a backend crash, the next reload starts a new backend.
+The app reads stats every five minutes. **Reload stats** reads them immediately. Neither action requests a bank refresh. Failed summary endpoints leave account balances visible. A failed account request retains the previous snapshot and displays an error. Each refresh starts a backend and stops it after receiving the dashboard. Swift retains the displayed data between refreshes.
 
 ## Local history and alerts
 
@@ -117,17 +117,17 @@ Notifications have no sound and hide account names and amounts. Open Reckon to v
 
 ## Backend ownership
 
-`Sources/ReckonCore/BundledBackend.swift` owns the child process, startup protocol, private API token, cancellation, and shutdown. It passes credentials through stdin. The child watches that pipe and its parent process so it also stops after an app crash. The local API token changes on every launch and stays in memory.
+`Sources/ReckonCore/BundledBackend.swift` owns the child process, startup protocol, private API token, cancellation, and shutdown. Its `fetchDashboard` operation starts a child for one refresh and stops it on success, failure, or cancellation. There is no idle backend process between refreshes. It passes credentials through stdin. The child watches that pipe and its parent process so it also stops after an app crash. The local API token changes on every launch and stays in memory.
 
 `Backend/backend-main.ts` connects the Akahu adapter, `NodeRuntime`, and the local HTTP boundary in `Backend/native-bank-server.ts`. Effect's `NodeHttpServer` owns the listener and request scope. It listens on `127.0.0.1`. macOS selects the port.
 
 The API permits authenticated GET requests to seven bank routes and `/health`. It rejects browser origins, incorrect Host headers, writes, and unrelated routes. Effect schemas decode queries and encode responses. Logs contain no bank records or credentials.
 
-`akahu-http-client.ts` uses Effect `HttpClient` for authenticated GET requests and JSON codecs. It retries transient failures up to five times with exponential backoff and jitter. It honors `Retry-After`, rejects redirects, and limits each page read to twenty seconds. Source failures become safe `BankDataError` values and generic HTTP 502 responses.
+`akahu-http-client.ts` uses Effect `HttpClient` over `NodeHttpClient.layerNodeHttp` for authenticated GET requests and JSON codecs. The Node HTTP transport avoids initializing Fetch for upstream requests. It retries transient failures up to five times with exponential backoff and jitter. It honors `Retry-After`, rejects redirects, and limits each page read to twenty seconds. Source failures become safe `BankDataError` values and generic HTTP 502 responses.
 
 Effect `Stream.paginate` reads each source page. Effect `Cache` shares one history read across a dashboard reload. Swift sends the same `X-Reckon-Snapshot` UUID on all eight requests in that reload. The shared history starts on the first day of the month six months before the current Auckland month. Each section applies its own date range before calculations.
 
-The history cache retains at most four successful reloads for one minute. Each new reload uses a new UUID, so manual reloads read fresh transaction history immediately. The account cache retains one successful account list for five minutes. Failed reads expire immediately. Requests without a snapshot ID read history directly. Requests outside the shared date range also read their full requested range directly.
+Caches belong to the backend process and disappear after each native refresh. Within a running process, the history cache retains at most four successful reloads for one minute. Each new reload uses a new UUID, so manual reloads read fresh transaction history immediately. The account cache retains one successful account list for five minutes. Failed reads expire immediately. Requests without a snapshot ID read history directly. Requests outside the shared date range also read their full requested range directly.
 
 A failed history read leaves account balances available. Client disconnects and app shutdown interrupt active reads and close source connections. App pipe closure, parent exit, SIGINT, and SIGTERM close the root Effect scope before process exit. The backend contains seven bank operations. It contains no database services, budgets, goals, category rules, taxonomy bundle, or unsupported write methods.
 
@@ -137,11 +137,13 @@ The backend uses strict TypeScript checks with `exactOptionalPropertyTypes` and 
 
 ## Backend performance
 
-`scripts/measure-backend.mjs` measures backend startup, dashboard HTTP response time, and backend RSS with a local synthetic fixture. The fixture contains three accounts and 3,000 transactions. It compares zero delay with a 50 ms delay per source response. Each dashboard uses a fresh snapshot UUID. The [21 October 2026 measurements](performance/backend-2026-10-21.md) describe the method and limits.
+`scripts/measure-backend.mjs` measures backend startup, dashboard HTTP response time, and backend RSS with a local synthetic fixture. The fixture contains three accounts and 3,000 transactions. It compares zero delay with a 50 ms delay per source response. Each dashboard uses a fresh snapshot UUID. The [memory reduction measurements](performance/backend-memory-2026-10-21.md) compare the current implementation with the [original baseline](performance/backend-2026-10-21.md). The harness uses the native launcher’s `--max-semi-space-size=2` setting. This limits V8’s young generation rather than imposing a total heap limit. Recheck this choice when changing the bundled Node version or workload.
 
 ```sh
-node scripts/measure-backend.mjs --runs 20 --output .build/backend-performance.json
+node scripts/measure-backend.mjs --runs 20 --output .build/backend-performance.json --max-loaded-rss-mib 110
 ```
+
+The optional RSS limit checks the median after the first dashboard in each scenario. It is a local regression budget; memory varies with runtime, architecture, and fixture size. `startupAndDashboardMs` includes process startup for the production refresh lifecycle. The warm reload measurement is retained for comparison with the earlier persistent backend.
 
 ## GitHub builds and releases
 

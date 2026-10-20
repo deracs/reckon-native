@@ -56,7 +56,7 @@ private final class BackendChild {
     init(apiToken: String) { self.apiToken = apiToken }
 }
 
-/// Owns the bundled Node process and its authenticated loopback API for one app instance.
+/// Owns a bundled Node child and its authenticated loopback API; dashboard refreshes scope its lifetime.
 @MainActor
 public final class BundledBackend {
     public var onUnexpectedExit: ((BundledBackendError) -> Void)?
@@ -71,6 +71,19 @@ public final class BundledBackend {
     private var state = State.stopped
 
     public init(bundleURL: URL) { self.bundleURL = bundleURL }
+
+    /// Fetches one dashboard and releases the backend process on success, failure, or cancellation.
+    public static func fetchDashboard(bundleURL: URL, credentials: AkahuCredentials) async throws -> BankDashboard {
+        let backend = BundledBackend(bundleURL: bundleURL)
+        defer { backend.stop() }
+        let connection = try await backend.start(credentials: credentials)
+        let client = ReckonAPIClient(connection: connection)
+        defer { client.invalidateSession() }
+        let dashboard = try await client.fetchDashboard()
+        try Task.checkCancellation()
+        guard backend.isRunning else { throw BundledBackendError.unexpectedExit }
+        return dashboard
+    }
 
     public var isRunning: Bool {
         if case .running(let child, _) = state { return child.process.isRunning }
@@ -90,7 +103,8 @@ public final class BundledBackend {
         }
         let child = BackendChild(apiToken: randomBytes.map { String(format: "%02x", $0) }.joined())
         child.process.executableURL = executable
-        child.process.arguments = [script.path]
+        // Keep the young generation small for short, occasional dashboard loads.
+        child.process.arguments = ["--max-semi-space-size=2", script.path]
         child.process.currentDirectoryURL = script.deletingLastPathComponent()
         child.process.environment = ["PATH": "/usr/bin:/bin", "LANG": "en_NZ.UTF-8", "TZ": "Pacific/Auckland"]
         child.process.standardInput = child.input

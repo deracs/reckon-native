@@ -51,6 +51,7 @@ private struct BankCheck {
             BankCheck(name: "Cancelled authentication task keeps data locked") { try await ReckonAppLockTests().cancelledTaskCannotUnlock() },
             BankCheck(name: "Akahu token parsing and redaction") { try backend.akahuCredentialsRejectInvalidTokensAndRedactDescriptions() },
             BankCheck(name: "Bundled backend launch, auth, stop, and restart") { try await backend.startsAuthenticatedBackendAndReleasesItsPort() },
+            BankCheck(name: "Dashboard refresh releases its backend after success, failure, and cancellation") { try await backend.dashboardRefreshReleasesBackendAfterSuccessFailureAndCancellation() },
             BankCheck(name: "Missing bundled backend") { try await backend.missingBundleProducesAnActionableFailure() },
             BankCheck(name: "Malformed backend startup response") { try await backend.malformedStartupResponseStopsTheChild() },
             BankCheck(name: "Backend startup cancellation") { try await backend.cancellingStartupStopsTheChild() },

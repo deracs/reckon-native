@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 import ReckonCore
 
@@ -66,6 +67,76 @@ struct BundledBackendTests: Sendable {
         try FileManager.default.createSymbolicLink(at: helpers.appendingPathComponent("node"), withDestinationURL: appBundle.appendingPathComponent("Contents/Helpers/node"))
         try script.write(to: resources.appendingPathComponent("backend.cjs"), atomically: true, encoding: .utf8)
         return folder
+    }
+
+    @MainActor private func dashboardBundle(accountStatus: Int = 200, holdResponses: Bool = false) throws -> URL {
+        try fakeBundle(script: """
+        const http = require('node:http')
+        const fs = require('node:fs')
+        const path = require('node:path')
+        const server = http.createServer((request, response) => {
+            if (\(holdResponses)) return
+            const endpoint = new URL(request.url, 'http://localhost').pathname
+            const status = endpoint === '/accounts' ? \(accountStatus) : 200
+            const body = endpoint === '/forecast'
+                ? {startDate:'2026-10-20',endDate:'2026-11-19',startingBalance:'0',endingBalance:'0',points:[],events:[],risks:[]}
+                : []
+            response.writeHead(status, {'content-type':'application/json'}).end(JSON.stringify(body))
+        })
+        process.stdin.once('data', () => server.listen(0, '127.0.0.1', () => {
+            fs.writeFileSync(path.join(__dirname, 'child.pid'), String(process.pid))
+            process.stdout.write(JSON.stringify({event:'ready',port:server.address().port})+'\\n')
+        }))
+        """)
+    }
+
+    @MainActor private func childPID(in folder: URL) async throws -> Int32 {
+        let file = folder.appendingPathComponent("Contents/Resources/Backend/child.pid")
+        for _ in 0..<100 {
+            if let text = try? String(contentsOf: file, encoding: .utf8), let pid = Int32(text) { return pid }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        throw BankCheckFailure(message: "Dashboard fixture child did not start")
+    }
+
+    @MainActor private func expectChildExited(in folder: URL) async throws {
+        let pid = try await childPID(in: folder)
+        defer { if kill(pid, 0) == 0 { kill(pid, SIGKILL) } }
+        for _ in 0..<100 {
+            if kill(pid, 0) != 0 && errno == ESRCH { return }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        throw BankCheckFailure(message: "Dashboard backend remained alive after its refresh")
+    }
+
+    @MainActor func dashboardRefreshReleasesBackendAfterSuccessFailureAndCancellation() async throws {
+        let credentials = try AkahuCredentials(appToken: "fixture-app", userToken: "fixture-user")
+        let success = try dashboardBundle()
+        defer { try? FileManager.default.removeItem(at: success) }
+        let dashboard = try await BundledBackend.fetchDashboard(bundleURL: success, credentials: credentials)
+        try bankExpect(dashboard.accounts.isEmpty)
+        try bankExpect(dashboard.transactions.value?.isEmpty == true)
+        try bankExpect(dashboard.forecast.value != nil)
+        try await expectChildExited(in: success)
+
+        let failure = try dashboardBundle(accountStatus: 401)
+        defer { try? FileManager.default.removeItem(at: failure) }
+        do {
+            _ = try await BundledBackend.fetchDashboard(bundleURL: failure, credentials: credentials)
+            throw BankCheckFailure(message: "Expected unauthorized dashboard failure")
+        } catch ReckonAPIError.unauthorized {}
+        try await expectChildExited(in: failure)
+
+        let cancelled = try dashboardBundle(holdResponses: true)
+        defer { try? FileManager.default.removeItem(at: cancelled) }
+        let refresh = Task { try await BundledBackend.fetchDashboard(bundleURL: cancelled, credentials: credentials) }
+        _ = try await childPID(in: cancelled)
+        refresh.cancel()
+        do {
+            _ = try await refresh.value
+            throw BankCheckFailure(message: "Expected cancelled dashboard refresh")
+        } catch is CancellationError {}
+        try await expectChildExited(in: cancelled)
     }
 
     @MainActor func malformedStartupResponseStopsTheChild() async throws {

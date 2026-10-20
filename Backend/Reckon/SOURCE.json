@@ -5,7 +5,7 @@
   "files": [
     {
       "path": "packages/akahu/src/Akahu.ts",
-      "sha256": "d93b1f32d98550d14f952b65ad7533371599a14b9ead510804439507a45692d9"
+      "sha256": "0eb55183e9de9ac9c4a455a8f49db13628df09fddbb7fe6876e99f4aa2d8be0e"
     },
     {
       "path": "packages/akahu/src/akahu-http-client.ts",

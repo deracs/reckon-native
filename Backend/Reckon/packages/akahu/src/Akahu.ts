@@ -12,7 +12,7 @@ import {
   summarizeSpendingByCategory,
 } from "@reckon/domain"
 import { BigDecimal, Cache, Config, DateTime, Effect, Exit, Layer, Option, Schema, Stream } from "effect"
-import * as FetchHttpClient from "effect/http/FetchHttpClient"
+import * as NodeHttpClient from "@effect/platform-node/NodeHttpClient"
 import { makeAkahuHttpClient } from "./akahu-http-client.js"
 import { AkahuAccount, AkahuPendingTransaction, AkahuTransaction, PaginatedResponse } from "./wire.js"
 
@@ -189,7 +189,4 @@ export const AkahuBankDataLayer = Layer.effect(
       }),
     })
   }),
-).pipe(
-  Layer.provide(FetchHttpClient.layer),
-  Layer.provide(Layer.succeed(FetchHttpClient.RequestInit, { redirect: "manual" })),
-)
+).pipe(Layer.provide(NodeHttpClient.layerNodeHttp))

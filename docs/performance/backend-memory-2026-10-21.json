@@ -1,0 +1,891 @@
+{
+  "measuredAt": "2026-10-20T19:26:25.165Z",
+  "environment": {
+    "cpu": "Apple M3 Pro",
+    "architecture": "arm64",
+    "platform": "darwin",
+    "kernel": "25.5.0",
+    "backendNode": "v24.21.0",
+    "runtimeArguments": ["--max-semi-space-size=2"],
+    "effect": "4.0.5",
+    "bundleBytes": 983199,
+    "bundleSha256": "b0b0cc3b64787c2d20531ba216b2fb48f4630700f146d8d8296b25694c4d4b73"
+  },
+  "workload": {
+    "accounts": 3,
+    "postedTransactions": 3000,
+    "pageSize": 500,
+    "dashboardRequests": 8,
+    "from": "2026-04-01",
+    "to": "2026-10-21"
+  },
+  "method": {
+    "startup": "Fresh process spawn through ready stdout handshake; OS caches are not flushed. No source requests occur before readiness.",
+    "dashboard": "Eight concurrent authenticated requests through JSON decoding in this Node harness. Each load uses a new snapshot UUID. Excludes Swift decoding, UI rendering, Keychain, and live Akahu.",
+    "lifecycle": "The native app starts a backend for each refresh and stops it afterward. startupAndDashboardMs sums the two timed phases, excluding RSS sampling. freshReloadMs is a supplemental warm-process comparison, not the production refresh lifecycle.",
+    "memory": "Backend process RSS from ps, in MiB, sampled outside the timed intervals. Shared pages count toward RSS. This is not peak memory or the full Swift app footprint.",
+    "latency": "Local fixture has 0 or 50 ms delay per upstream response. This simulates latency; it does not predict live Akahu performance."
+  },
+  "scenarios": [
+    {
+      "latencyMs": 0,
+      "runs": 20,
+      "summary": {
+        "startupMs": {
+          "median": 84.48575000000005,
+          "p95": 121.7944580000003,
+          "min": 70.26108300000033,
+          "max": 128.0926669999999
+        },
+        "firstDashboardMs": {
+          "median": 73.63454099999967,
+          "p95": 92.59804199999962,
+          "min": 62.43866699999944,
+          "max": 121.38120799999979
+        },
+        "startupAndDashboardMs": {
+          "median": 159.36456250000015,
+          "p95": 204.02866600000016,
+          "min": 132.73162400000092,
+          "max": 249.47387499999968
+        },
+        "freshReloadMs": {
+          "median": 43.55031250000002,
+          "p95": 60.26854200000071,
+          "min": 32.95824999999968,
+          "max": 71.15579200000047
+        },
+        "startupRssMiB": {
+          "median": 77.125,
+          "p95": 77.703125,
+          "min": 76.9375,
+          "max": 78.046875
+        },
+        "loadedRssMiB": {
+          "median": 98.96875,
+          "p95": 99.453125,
+          "min": 98.578125,
+          "max": 100.5625
+        },
+        "reloadRssMiB": {
+          "median": 102.8515625,
+          "p95": 109.078125,
+          "min": 99.84375,
+          "max": 109.328125
+        },
+        "firstLoadUpstreamRequests": [10],
+        "reloadUpstreamRequests": [9]
+      },
+      "samples": [
+        {
+          "startupMs": 121.7944580000003,
+          "startupRssMiB": 77.359375,
+          "firstLoad": {
+            "elapsedMs": 82.23420799999985,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 99.25,
+          "reload": {
+            "elapsedMs": 51.46691699999974,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 103.6875
+        },
+        {
+          "startupMs": 88.83966599999985,
+          "startupRssMiB": 77.109375,
+          "firstLoad": {
+            "elapsedMs": 87.67720800000006,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.578125,
+          "reload": {
+            "elapsedMs": 43.49950000000035,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 105.0625
+        },
+        {
+          "startupMs": 84.67525000000023,
+          "startupRssMiB": 77.21875,
+          "firstLoad": {
+            "elapsedMs": 73.21787500000028,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.96875,
+          "reload": {
+            "elapsedMs": 42.44225000000006,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 100.46875
+        },
+        {
+          "startupMs": 80.88933299999962,
+          "startupRssMiB": 77.21875,
+          "firstLoad": {
+            "elapsedMs": 72.43879199999992,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.921875,
+          "reload": {
+            "elapsedMs": 43.60112499999968,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 108.765625
+        },
+        {
+          "startupMs": 77.87254200000007,
+          "startupRssMiB": 77.34375,
+          "firstLoad": {
+            "elapsedMs": 73.59616599999981,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 99.03125,
+          "reload": {
+            "elapsedMs": 44.159250000000156,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 103.4375
+        },
+        {
+          "startupMs": 81.27862499999992,
+          "startupRssMiB": 77.015625,
+          "firstLoad": {
+            "elapsedMs": 79.55737499999987,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.734375,
+          "reload": {
+            "elapsedMs": 45.5437079999997,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 103.84375
+        },
+        {
+          "startupMs": 91.72199999999975,
+          "startupRssMiB": 77.09375,
+          "firstLoad": {
+            "elapsedMs": 88.0821249999999,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.9375,
+          "reload": {
+            "elapsedMs": 48.09329200000002,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 109.328125
+        },
+        {
+          "startupMs": 84.29624999999987,
+          "startupRssMiB": 77.203125,
+          "firstLoad": {
+            "elapsedMs": 72.42562500000031,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 99.265625,
+          "reload": {
+            "elapsedMs": 38.3311249999997,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 100.1875
+        },
+        {
+          "startupMs": 111.06429100000014,
+          "startupRssMiB": 77.703125,
+          "firstLoad": {
+            "elapsedMs": 92.59804199999962,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 99,
+          "reload": {
+            "elapsedMs": 60.26854200000071,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 102.0625
+        },
+        {
+          "startupMs": 128.0926669999999,
+          "startupRssMiB": 77.5,
+          "firstLoad": {
+            "elapsedMs": 121.38120799999979,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 99.453125,
+          "reload": {
+            "elapsedMs": 71.15579200000047,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 103.671875
+        },
+        {
+          "startupMs": 89.66083400000025,
+          "startupRssMiB": 77.109375,
+          "firstLoad": {
+            "elapsedMs": 78.14649999999983,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.875,
+          "reload": {
+            "elapsedMs": 45.57795800000076,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 102.265625
+        },
+        {
+          "startupMs": 85.75212499999998,
+          "startupRssMiB": 76.96875,
+          "firstLoad": {
+            "elapsedMs": 89.26104200000009,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.921875,
+          "reload": {
+            "elapsedMs": 49.593292000000474,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 103.609375
+        },
+        {
+          "startupMs": 116.64770799999951,
+          "startupRssMiB": 78.046875,
+          "firstLoad": {
+            "elapsedMs": 73.67291599999953,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 100.5625,
+          "reload": {
+            "elapsedMs": 60.19350000000031,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 101.34375
+        },
+        {
+          "startupMs": 117.18262500000037,
+          "startupRssMiB": 77.359375,
+          "firstLoad": {
+            "elapsedMs": 66.43175000000065,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 99.28125,
+          "reload": {
+            "elapsedMs": 36.50350000000071,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 100.296875
+        },
+        {
+          "startupMs": 80.26941699999952,
+          "startupRssMiB": 76.953125,
+          "firstLoad": {
+            "elapsedMs": 71.6455420000002,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.625,
+          "reload": {
+            "elapsedMs": 40.1967080000004,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 103.484375
+        },
+        {
+          "startupMs": 74.63437499999964,
+          "startupRssMiB": 77.140625,
+          "firstLoad": {
+            "elapsedMs": 63.571874999999636,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.828125,
+          "reload": {
+            "elapsedMs": 41.4815409999992,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 109.078125
+        },
+        {
+          "startupMs": 73.34349999999995,
+          "startupRssMiB": 77.015625,
+          "firstLoad": {
+            "elapsedMs": 62.43866699999944,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.703125,
+          "reload": {
+            "elapsedMs": 34.760833000000275,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 101.96875
+        },
+        {
+          "startupMs": 70.26108300000033,
+          "startupRssMiB": 77.09375,
+          "firstLoad": {
+            "elapsedMs": 62.470541000000594,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.96875,
+          "reload": {
+            "elapsedMs": 33.95316600000024,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 99.84375
+        },
+        {
+          "startupMs": 71.9844579999999,
+          "startupRssMiB": 76.9375,
+          "firstLoad": {
+            "elapsedMs": 64.25700000000052,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 99.0625,
+          "reload": {
+            "elapsedMs": 32.95824999999968,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 99.921875
+        },
+        {
+          "startupMs": 72.5903330000001,
+          "startupRssMiB": 77.078125,
+          "firstLoad": {
+            "elapsedMs": 76.81325000000015,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 99.0625,
+          "reload": {
+            "elapsedMs": 42.40899999999965,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 100.0625
+        }
+      ]
+    },
+    {
+      "latencyMs": 50,
+      "runs": 20,
+      "summary": {
+        "startupMs": {
+          "median": 89.07102049999958,
+          "p95": 99.29133300000103,
+          "min": 74.33841699999903,
+          "max": 104.14545799999905
+        },
+        "firstDashboardMs": {
+          "median": 294.0743745,
+          "p95": 303.28862500000105,
+          "min": 268.96158399999877,
+          "max": 316.96450000000004
+        },
+        "startupAndDashboardMs": {
+          "median": 385.3240200000005,
+          "p95": 399.67570800000067,
+          "min": 343.8474589999987,
+          "max": 402.0086250000004
+        },
+        "freshReloadMs": {
+          "median": 209.09931250000136,
+          "p95": 215.1808749999982,
+          "min": 190.44833300000028,
+          "max": 215.39049999999952
+        },
+        "startupRssMiB": {
+          "median": 77.1171875,
+          "p95": 77.25,
+          "min": 76.9375,
+          "max": 77.25
+        },
+        "loadedRssMiB": {
+          "median": 98.734375,
+          "p95": 98.90625,
+          "min": 98.53125,
+          "max": 98.90625
+        },
+        "reloadRssMiB": {
+          "median": 100.1640625,
+          "p95": 101.734375,
+          "min": 99.703125,
+          "max": 103.21875
+        },
+        "firstLoadUpstreamRequests": [10],
+        "reloadUpstreamRequests": [9]
+      },
+      "samples": [
+        {
+          "startupMs": 79.71820900000057,
+          "startupRssMiB": 77.21875,
+          "firstLoad": {
+            "elapsedMs": 297.40250000000015,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.765625,
+          "reload": {
+            "elapsedMs": 208.34362500000043,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 101.640625
+        },
+        {
+          "startupMs": 86.25554099999954,
+          "startupRssMiB": 77.09375,
+          "firstLoad": {
+            "elapsedMs": 299.41320799999994,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.5625,
+          "reload": {
+            "elapsedMs": 214.4482079999998,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 99.734375
+        },
+        {
+          "startupMs": 91.04162499999984,
+          "startupRssMiB": 77.0625,
+          "firstLoad": {
+            "elapsedMs": 293.89649999999983,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.671875,
+          "reload": {
+            "elapsedMs": 199.7738330000011,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 101.578125
+        },
+        {
+          "startupMs": 83.4203749999997,
+          "startupRssMiB": 77.046875,
+          "firstLoad": {
+            "elapsedMs": 291.65941700000076,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.625,
+          "reload": {
+            "elapsedMs": 213.34591700000055,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 101.734375
+        },
+        {
+          "startupMs": 91.77554200000122,
+          "startupRssMiB": 77.109375,
+          "firstLoad": {
+            "elapsedMs": 294.1219579999997,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.546875,
+          "reload": {
+            "elapsedMs": 206.97179200000028,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 99.703125
+        },
+        {
+          "startupMs": 90.95250000000124,
+          "startupRssMiB": 77.078125,
+          "firstLoad": {
+            "elapsedMs": 294.02679100000023,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.828125,
+          "reload": {
+            "elapsedMs": 209.62420900000143,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 99.9375
+        },
+        {
+          "startupMs": 89.74779099999978,
+          "startupRssMiB": 77.125,
+          "firstLoad": {
+            "elapsedMs": 277.53049999999894,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.90625,
+          "reload": {
+            "elapsedMs": 190.44833300000028,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 100.265625
+        },
+        {
+          "startupMs": 74.88587499999994,
+          "startupRssMiB": 76.9375,
+          "firstLoad": {
+            "elapsedMs": 268.96158399999877,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.671875,
+          "reload": {
+            "elapsedMs": 192.52979200000118,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 101.640625
+        },
+        {
+          "startupMs": 74.33841699999903,
+          "startupRssMiB": 77.15625,
+          "firstLoad": {
+            "elapsedMs": 290.17141600000105,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.71875,
+          "reload": {
+            "elapsedMs": 212.59212500000103,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 101.734375
+        },
+        {
+          "startupMs": 88.39424999999937,
+          "startupRssMiB": 77.109375,
+          "firstLoad": {
+            "elapsedMs": 298.9876659999991,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.75,
+          "reload": {
+            "elapsedMs": 209.83550000000105,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 100
+        },
+        {
+          "startupMs": 90.23679099999936,
+          "startupRssMiB": 77.125,
+          "firstLoad": {
+            "elapsedMs": 296.467208,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.703125,
+          "reload": {
+            "elapsedMs": 213.80429099999856,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 103.21875
+        },
+        {
+          "startupMs": 85.04412500000035,
+          "startupRssMiB": 77.09375,
+          "firstLoad": {
+            "elapsedMs": 316.96450000000004,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.8125,
+          "reload": {
+            "elapsedMs": 204.36399999999958,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 101.65625
+        },
+        {
+          "startupMs": 88.1192919999994,
+          "startupRssMiB": 77.234375,
+          "firstLoad": {
+            "elapsedMs": 296.5042089999988,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.71875,
+          "reload": {
+            "elapsedMs": 213.52345799999966,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 100.171875
+        },
+        {
+          "startupMs": 91.37241699999868,
+          "startupRssMiB": 77.125,
+          "firstLoad": {
+            "elapsedMs": 291.7479579999999,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.53125,
+          "reload": {
+            "elapsedMs": 215.39049999999952,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 100.046875
+        },
+        {
+          "startupMs": 96.38708299999962,
+          "startupRssMiB": 77.15625,
+          "firstLoad": {
+            "elapsedMs": 303.28862500000105,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.609375,
+          "reload": {
+            "elapsedMs": 209.5072909999999,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 99.765625
+        },
+        {
+          "startupMs": 98.91649999999936,
+          "startupRssMiB": 77.25,
+          "firstLoad": {
+            "elapsedMs": 288.50454100000206,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.90625,
+          "reload": {
+            "elapsedMs": 207.32170899999983,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 100.34375
+        },
+        {
+          "startupMs": 87.96570799999972,
+          "startupRssMiB": 76.96875,
+          "firstLoad": {
+            "elapsedMs": 302.39824999999837,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.859375,
+          "reload": {
+            "elapsedMs": 208.69133400000283,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 100
+        },
+        {
+          "startupMs": 104.14545799999905,
+          "startupRssMiB": 77.25,
+          "firstLoad": {
+            "elapsedMs": 283.75112499999886,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.84375,
+          "reload": {
+            "elapsedMs": 200.29383299999972,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 100.125
+        },
+        {
+          "startupMs": 83.5881670000017,
+          "startupRssMiB": 77.171875,
+          "firstLoad": {
+            "elapsedMs": 297.7840830000023,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.828125,
+          "reload": {
+            "elapsedMs": 215.1808749999982,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 100.15625
+        },
+        {
+          "startupMs": 99.29133300000103,
+          "startupRssMiB": 77.046875,
+          "firstLoad": {
+            "elapsedMs": 291.6799589999973,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.859375,
+          "reload": {
+            "elapsedMs": 203.46262500000012,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 99.96875
+        }
+      ]
+    }
+  ],
+  "additionalChecks": {
+    "largeHistory": {
+      "method": "Same harness with 10,000 posted transactions per account instead of 1,000. Two runs per latency scenario are a correctness and capacity sanity check, not a tail-latency estimate.",
+      "report": {
+        "measuredAt": "2026-10-20T19:26:56.472Z",
+        "environment": {
+          "cpu": "Apple M3 Pro",
+          "architecture": "arm64",
+          "platform": "darwin",
+          "kernel": "25.5.0",
+          "backendNode": "v24.21.0",
+          "runtimeArguments": ["--max-semi-space-size=2"],
+          "effect": "4.0.5",
+          "bundleBytes": 983199,
+          "bundleSha256": "b0b0cc3b64787c2d20531ba216b2fb48f4630700f146d8d8296b25694c4d4b73"
+        },
+        "workload": {
+          "accounts": 3,
+          "postedTransactions": 30000,
+          "pageSize": 500,
+          "dashboardRequests": 8,
+          "from": "2026-04-01",
+          "to": "2026-10-21"
+        },
+        "method": {
+          "startup": "Fresh process spawn through ready stdout handshake; OS caches are not flushed. No source requests occur before readiness.",
+          "dashboard": "Eight concurrent authenticated requests through JSON decoding in this Node harness. Each load uses a new snapshot UUID. Excludes Swift decoding, UI rendering, Keychain, and live Akahu.",
+          "lifecycle": "The native app starts a backend for each refresh and stops it afterward. startupAndDashboardMs sums the two timed phases, excluding RSS sampling. freshReloadMs is a supplemental warm-process comparison, not the production refresh lifecycle.",
+          "memory": "Backend process RSS from ps, in MiB, sampled outside the timed intervals. Shared pages count toward RSS. This is not peak memory or the full Swift app footprint.",
+          "latency": "Local fixture has 0 or 50 ms delay per upstream response. This simulates latency; it does not predict live Akahu performance."
+        },
+        "scenarios": [
+          {
+            "latencyMs": 0,
+            "runs": 2,
+            "summary": {
+              "startupMs": {
+                "median": 104.55406249999999,
+                "p95": 135.422417,
+                "min": 73.68570799999998,
+                "max": 135.422417
+              },
+              "firstDashboardMs": {
+                "median": 339.9367914999999,
+                "p95": 347.088333,
+                "min": 332.7852499999999,
+                "max": 347.088333
+              },
+              "startupAndDashboardMs": {
+                "median": 444.4908539999999,
+                "p95": 482.51075,
+                "min": 406.4709579999999,
+                "max": 482.51075
+              },
+              "freshReloadMs": {
+                "median": 273.4959580000001,
+                "p95": 283.6237080000001,
+                "min": 263.3682080000001,
+                "max": 283.6237080000001
+              },
+              "startupRssMiB": {
+                "median": 77.25,
+                "p95": 77.359375,
+                "min": 77.140625,
+                "max": 77.359375
+              },
+              "loadedRssMiB": {
+                "median": 179.296875,
+                "p95": 180.328125,
+                "min": 178.265625,
+                "max": 180.328125
+              },
+              "reloadRssMiB": {
+                "median": 196.515625,
+                "p95": 199.171875,
+                "min": 193.859375,
+                "max": 199.171875
+              },
+              "firstLoadUpstreamRequests": [64],
+              "reloadUpstreamRequests": [63]
+            },
+            "samples": [
+              {
+                "startupMs": 135.422417,
+                "startupRssMiB": 77.359375,
+                "firstLoad": {
+                  "elapsedMs": 347.088333,
+                  "upstreamRequests": 64
+                },
+                "loadedRssMiB": 180.328125,
+                "reload": {
+                  "elapsedMs": 263.3682080000001,
+                  "upstreamRequests": 63
+                },
+                "reloadRssMiB": 193.859375
+              },
+              {
+                "startupMs": 73.68570799999998,
+                "startupRssMiB": 77.140625,
+                "firstLoad": {
+                  "elapsedMs": 332.7852499999999,
+                  "upstreamRequests": 64
+                },
+                "loadedRssMiB": 178.265625,
+                "reload": {
+                  "elapsedMs": 283.6237080000001,
+                  "upstreamRequests": 63
+                },
+                "reloadRssMiB": 199.171875
+              }
+            ]
+          },
+          {
+            "latencyMs": 50,
+            "runs": 2,
+            "summary": {
+              "startupMs": {
+                "median": 79.33156250000013,
+                "p95": 80.41612499999997,
+                "min": 78.2470000000003,
+                "max": 80.41612499999997
+              },
+              "firstDashboardMs": {
+                "median": 1618.9992494999997,
+                "p95": 1621.9075829999992,
+                "min": 1616.090916,
+                "max": 1621.9075829999992
+              },
+              "startupAndDashboardMs": {
+                "median": 1698.3308119999997,
+                "p95": 1700.1545829999995,
+                "min": 1696.507041,
+                "max": 1700.1545829999995
+              },
+              "freshReloadMs": {
+                "median": 1470.6082500000002,
+                "p95": 1501.4527500000004,
+                "min": 1439.76375,
+                "max": 1501.4527500000004
+              },
+              "startupRssMiB": {
+                "median": 77.0625,
+                "p95": 77.078125,
+                "min": 77.046875,
+                "max": 77.078125
+              },
+              "loadedRssMiB": {
+                "median": 163.4921875,
+                "p95": 170.359375,
+                "min": 156.625,
+                "max": 170.359375
+              },
+              "reloadRssMiB": {
+                "median": 192.828125,
+                "p95": 195.71875,
+                "min": 189.9375,
+                "max": 195.71875
+              },
+              "firstLoadUpstreamRequests": [64],
+              "reloadUpstreamRequests": [63]
+            },
+            "samples": [
+              {
+                "startupMs": 80.41612499999997,
+                "startupRssMiB": 77.046875,
+                "firstLoad": {
+                  "elapsedMs": 1616.090916,
+                  "upstreamRequests": 64
+                },
+                "loadedRssMiB": 156.625,
+                "reload": {
+                  "elapsedMs": 1439.76375,
+                  "upstreamRequests": 63
+                },
+                "reloadRssMiB": 189.9375
+              },
+              {
+                "startupMs": 78.2470000000003,
+                "startupRssMiB": 77.078125,
+                "firstLoad": {
+                  "elapsedMs": 1621.9075829999992,
+                  "upstreamRequests": 64
+                },
+                "loadedRssMiB": 170.359375,
+                "reload": {
+                  "elapsedMs": 1501.4527500000004,
+                  "upstreamRequests": 63
+                },
+                "reloadRssMiB": 195.71875
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

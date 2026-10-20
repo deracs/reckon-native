@@ -14,13 +14,19 @@ const { values } = parseArgs({
   options: {
     runs: { type: "string", default: "20" },
     output: { type: "string" },
+    "max-loaded-rss-mib": { type: "string" },
   },
 })
+const maximumLoadedRSS = values["max-loaded-rss-mib"] === undefined ? undefined : Number(values["max-loaded-rss-mib"])
+if (maximumLoadedRSS !== undefined)
+  assert(Number.isFinite(maximumLoadedRSS) && maximumLoadedRSS > 0, "Use a positive RSS limit in MiB.")
 const runs = Number(values.runs)
 assert(Number.isInteger(runs) && runs >= 2 && runs <= 100, "Use 2–100 measurement runs.")
 const project = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const runtime = resolve(project, "dist/Reckon.app/Contents/Helpers/node")
 const backend = resolve(project, "dist/Reckon.app/Contents/Resources/Backend/backend.cjs")
+// Match BundledBackend.swift: benchmark the runtime settings shipped by the native app.
+const runtimeArguments = ["--max-semi-space-size=2"]
 const token = "synthetic-benchmark-token"
 const today = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Pacific/Auckland",
@@ -128,7 +134,10 @@ async function measureScenario(latencyMs) {
   try {
     for (let run = 0; run < runs; run += 1) {
       const started = performance.now()
-      const child = spawn(runtime, [backend], { env: { PATH: "/usr/bin:/bin" }, stdio: ["pipe", "pipe", "pipe"] })
+      const child = spawn(runtime, [...runtimeArguments, backend], {
+        env: { PATH: "/usr/bin:/bin" },
+        stdio: ["pipe", "pipe", "pipe"],
+      })
       const exit = once(child, "exit")
       const ready = deadline(
         new Promise((resolveReady, reject) => {
@@ -192,6 +201,7 @@ async function measureScenario(latencyMs) {
   const summary = {
     startupMs: summarize(samples.map((sample) => sample.startupMs)),
     firstDashboardMs: summarize(samples.map((sample) => sample.firstLoad.elapsedMs)),
+    startupAndDashboardMs: summarize(samples.map((sample) => sample.startupMs + sample.firstLoad.elapsedMs)),
     freshReloadMs: summarize(samples.map((sample) => sample.reload.elapsedMs)),
     startupRssMiB: summarize(samples.map((sample) => sample.startupRssMiB)),
     loadedRssMiB: summarize(samples.map((sample) => sample.loadedRssMiB)),
@@ -210,6 +220,7 @@ const report = {
     platform: process.platform,
     kernel: release(),
     backendNode: execFileSync(runtime, ["--version"], { encoding: "utf8" }).trim(),
+    runtimeArguments,
     effect: JSON.parse(await readFile(resolve(project, "package.json"), "utf8")).dependencies.effect,
     bundleBytes: (await readFile(backend)).length,
     bundleSha256: createHash("sha256")
@@ -229,6 +240,8 @@ const report = {
       "Fresh process spawn through ready stdout handshake; OS caches are not flushed. No source requests occur before readiness.",
     dashboard:
       "Eight concurrent authenticated requests through JSON decoding in this Node harness. Each load uses a new snapshot UUID. Excludes Swift decoding, UI rendering, Keychain, and live Akahu.",
+    lifecycle:
+      "The native app starts a backend for each refresh and stops it afterward. startupAndDashboardMs sums the two timed phases, excluding RSS sampling. freshReloadMs is a supplemental warm-process comparison, not the production refresh lifecycle.",
     memory:
       "Backend process RSS from ps, in MiB, sampled outside the timed intervals. Shared pages count toward RSS. This is not peak memory or the full Swift app footprint.",
     latency:
@@ -242,3 +255,12 @@ for (const latency of [0, 50]) {
   console.log(JSON.stringify({ latencyMs: latency, runs, ...result.summary }, null, 2))
 }
 if (values.output) await writeFile(resolve(values.output), `${JSON.stringify(report, null, 2)}\n`)
+
+if (maximumLoadedRSS !== undefined) {
+  for (const scenario of report.scenarios) {
+    assert(
+      scenario.summary.loadedRssMiB.median <= maximumLoadedRSS,
+      `Loaded backend RSS ${scenario.summary.loadedRssMiB.median.toFixed(1)} MiB exceeds ${maximumLoadedRSS} MiB at ${scenario.latencyMs} ms source latency.`,
+    )
+  }
+}

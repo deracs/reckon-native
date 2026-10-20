@@ -22,8 +22,6 @@ final class BankDashboardStore: ObservableObject {
     private var visitBaseline: BankViewedSnapshot?
     private var visitIsActive = false
     private var credentials: AkahuCredentials?
-    private var client: ReckonAPIClient?
-    private let backend = BundledBackend(bundleURL: Bundle.main.bundleURL)
     private var loadTask: Task<Void, Never>?
     private var pollTask: Task<Void, Never>?
     private var generation = UUID()
@@ -51,14 +49,6 @@ final class BankDashboardStore: ObservableObject {
             journal = try storage.load()
             historyStorage = storage
         } catch { historyError = error.localizedDescription }
-        backend.onUnexpectedExit = { [weak self] error in
-            guard let self else { return }
-            self.generation = UUID()
-            self.loadTask?.cancel()
-            self.client = nil
-            self.isLoading = false
-            self.loadError = error.localizedDescription
-        }
         terminationObserver = NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.shutdown() }
         }
@@ -98,13 +88,11 @@ final class BankDashboardStore: ObservableObject {
             if credentials?.userToken != newCredentials.userToken { resetLocalHistory() }
             generation = UUID()
             loadTask?.cancel()
-            backend.stop()
             isLoading = false
             dashboard = nil
             loadError = nil
             connectionError = nil
             credentials = newCredentials
-            client = nil
             isConfigured = true
             reloadDashboard()
             return true
@@ -120,9 +108,7 @@ final class BankDashboardStore: ObservableObject {
             resetLocalHistory()
             generation = UUID()
             loadTask?.cancel()
-            backend.stop()
             credentials = nil
-            client = nil
             dashboard = nil
             isConfigured = false
             isLoading = false
@@ -138,17 +124,9 @@ final class BankDashboardStore: ObservableObject {
         loadTask = Task { [weak self] in
             guard let self else { return }
             do {
-                let client: ReckonAPIClient
-                if let existing = self.client, self.backend.isRunning {
-                    client = existing
-                } else {
-                    let connection = try await self.backend.start(credentials: credentials)
-                    try Task.checkCancellation()
-                    guard self.generation == requestGeneration else { return }
-                    client = ReckonAPIClient(connection: connection)
-                    self.client = client
-                }
-                let dashboard = try await client.fetchDashboard()
+                let dashboard = try await BundledBackend.fetchDashboard(
+                    bundleURL: Bundle.main.bundleURL, credentials: credentials
+                )
                 try Task.checkCancellation()
                 guard self.generation == requestGeneration else { return }
                 self.dashboard = dashboard
@@ -157,14 +135,6 @@ final class BankDashboardStore: ObservableObject {
                 self.isLoading = false
             } catch {
                 guard self.generation == requestGeneration, !Task.isCancelled else { return }
-                if let apiError = error as? ReckonAPIError {
-                    switch apiError {
-                    case .connectionFailed, .unauthorized:
-                        self.client = nil
-                        self.backend.stop()
-                    default: break
-                    }
-                }
                 self.loadError = error.localizedDescription
                 self.isLoading = false
             }
@@ -252,6 +222,5 @@ final class BankDashboardStore: ObservableObject {
         generation = UUID()
         loadTask?.cancel()
         pollTask?.cancel()
-        backend.stop()
     }
 }

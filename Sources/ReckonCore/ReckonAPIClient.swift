@@ -70,6 +70,9 @@ public struct ReckonAPIClient: Sendable {
         }
     }
 
+    // The bundled refresh owns its session and releases its delegate and connection pool afterward.
+    func invalidateSession() { session.invalidateAndCancel() }
+
     public func fetchDashboard(now: Date = .now) async throws -> BankDashboard {
         let window = BankDateWindow(now: now)
         let snapshotID = UUID().uuidString

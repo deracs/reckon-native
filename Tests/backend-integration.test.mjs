@@ -28,7 +28,7 @@ const timeout = (promise, milliseconds = 6000) => {
 
 async function launchBackend(t, handshake) {
   const directory = await mkdtemp(resolve(tmpdir(), "reckon-backend-"))
-  const child = spawn(runtime, [script], {
+  const child = spawn(runtime, ["--max-semi-space-size=2", script], {
     cwd: directory,
     env: { PATH: "/usr/bin:/bin" },
     stdio: ["pipe", "pipe", "pipe"],
