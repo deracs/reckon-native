@@ -71,6 +71,17 @@ final class ReckonSoftwareUpdates: NSObject, ObservableObject, SPUUpdaterDelegat
     }
 
     func updater(_ updater: SPUUpdater, didAbortWithError error: any Error) {
+        let failure = error as NSError
+        if failure.domain == SUSparkleErrorDomain {
+            if failure.code == SUError.noUpdateError.rawValue {
+                message = "You’re up to date."
+                return
+            }
+            if failure.code == SUError.installationCanceledError.rawValue {
+                message = nil
+                return
+            }
+        }
         message = "Could not check or install an update. Check your internet connection and try again."
     }
 
