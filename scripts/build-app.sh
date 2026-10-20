@@ -21,7 +21,8 @@ if ! otool -L "$node_binary" | awk 'NR > 1 && $1 !~ /^\/(usr\/lib|System\/Librar
     print -u2 "Use a standalone Node runtime that depends only on macOS system libraries."
     exit 1
 fi
-swift build -c "$configuration" --product Reckon -Xswiftc -debug-prefix-map -Xswiftc "$project_dir=/reckon-native"
+# Clang module-cache breadcrumbs point to unavailable .pcm files after path remapping.
+swift build -c "$configuration" --product Reckon -Xswiftc -warnings-as-errors -Xswiftc -Xfrontend -Xswiftc -no-clang-module-breadcrumbs -Xswiftc -debug-prefix-map -Xswiftc "$project_dir=/reckon-native"
 binary_dir="$(swift build -c "$configuration" --show-bin-path)"
 app_dir="$project_dir/dist/Reckon.app"
 rm -rf "$app_dir"

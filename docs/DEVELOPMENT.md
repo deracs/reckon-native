@@ -125,7 +125,8 @@ The app leaves the fallback button at its system default. It does not collect th
 Replies from canceled or previous attempts cannot unlock a new session.
 
 The automated checks cover session expiry, cancellation, rejection, and stale replies. They do not exercise the macOS authentication prompt.
-Before a release, do these manual checks with a normal app build:
+Before a release, do these manual checks with a normal app build and the available hardware.
+Record any checks that you cannot complete in the release notes:
 
 1. Unlock Reckon with Touch ID on a Mac with a registered fingerprint.
 2. Lock Reckon, then unlock it with the Mac login password through the macOS prompt.
