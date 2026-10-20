@@ -17,8 +17,13 @@ final class ReckonTouchID: ReckonAuthenticating {
             throw touchIDError(error)
         }
         do {
-            let authenticated = try await context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics,
-                                                                 localizedReason: "show your balances and accounts")
+            let authenticated: Bool = try await withCheckedThrowingContinuation { continuation in
+                context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics,
+                                       localizedReason: "show your balances and accounts") { authenticated, error in
+                    if let error { continuation.resume(throwing: error) }
+                    else { continuation.resume(returning: authenticated) }
+                }
+            }
             guard authenticated else {
                 throw ReckonTouchIDError(message: "Touch ID could not unlock Reckon. Try again.")
             }

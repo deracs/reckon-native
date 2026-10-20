@@ -7,7 +7,12 @@ final class BankNotifications {
     private let center = UNUserNotificationCenter.current()
 
     func requestPermission() async throws -> Bool {
-        try await center.requestAuthorization(options: [.alert])
+        try await withCheckedThrowingContinuation { continuation in
+            center.requestAuthorization(options: [.alert]) { granted, error in
+                if let error { continuation.resume(throwing: error) }
+                else { continuation.resume(returning: granted) }
+            }
+        }
     }
 
     func permissionDescription() async -> String {
@@ -32,7 +37,13 @@ final class BankNotifications {
             content.body = alert.kind == .lowBalance
                 ? "An account crossed your balance limit. Open Reckon to see the details."
                 : "A standing order estimate increased. Open Reckon to see the details."
-            try await center.add(UNNotificationRequest(identifier: alert.id.uuidString, content: content, trigger: nil))
+            let request = UNNotificationRequest(identifier: alert.id.uuidString, content: content, trigger: nil)
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
+                center.add(request) { error in
+                    if let error { continuation.resume(throwing: error) }
+                    else { continuation.resume() }
+                }
+            }
         }
     }
 }
