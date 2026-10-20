@@ -18,7 +18,7 @@ Click a screenshot to view it at full size.
 ## What you need
 
 - **macOS 15 or later.** Apple silicon and Intel Macs are supported.
-- **Touch ID** with a fingerprint set up on your Mac. Reckon has no password or Apple Watch fallback.
+- **A Mac login password.** Reckon accepts Touch ID, Apple Watch, or your Mac login password through the macOS authentication prompt.
 - **An Akahu personal app** with access to your accounts. You need its App ID token and User Access token.
 
 ## Install Reckon
@@ -44,7 +44,7 @@ For your first Akahu connection, use [Akahu’s personal app guide](https://deve
 1. Open the [**Developers** page in Akahu](https://my.akahu.nz/developers).
 2. Get the **App ID token** and **User Access token** for your Akahu personal app.
 3. Click the **chart icon** in the macOS menu bar.
-4. Unlock Reckon with Touch ID.
+4. Unlock Reckon with Touch ID, Apple Watch, or your Mac login password.
 5. Click **Connect Akahu**.
 6. Enter each token in its named field.
 7. Click **Save and connect**.
@@ -78,13 +78,26 @@ The menu bar shows only the chart icon. Your balances appear inside the dropdown
 
 Sleep or a macOS session switch also locks Reckon. The app can continue to read data while its interface is locked.
 
+### Unlock Reckon
+
+Click **Unlock Reckon** on the lock screen. macOS controls which authentication methods appear in its prompt.
+
+- **Touch ID:** use a fingerprint that you registered on your Mac.
+- **Mac login password:** choose the password option in the macOS prompt. Touch ID is optional.
+- **Apple Watch:** enable your watch in **System Settings → Touch ID & Password** (or **Login Password**). Wear your unlocked watch near your Mac. Double-click its side button when macOS requests approval.
+
+Apple Watch requires a compatible Mac, Wi-Fi, Bluetooth, and the same Apple Account with two-factor authentication on both devices.
+Your watch also needs a passcode. See [Apple’s setup requirements](https://support.apple.com/en-us/102442).
+
+macOS checks your Mac login password. Reckon does not receive or store it. Each method starts the same ten-minute unlocked session.
+
 ## Updates
 
 Reckon checks GitHub every six hours. Automatic downloads and installation are on by default.
 Updates install when Reckon quits, or you can choose to install and relaunch immediately.
 
 For a manual check, open **Settings → Updates → Check for Updates**.
-Updates keep your saved connection, local history, and login preference. Touch ID still applies after the app restarts.
+Updates keep your saved connection, local history, and login preference. Authentication still applies after the app restarts.
 
 For version 0.7.1 or earlier, install the latest release manually once. Later updates use the current update feed.
 
@@ -111,11 +124,13 @@ For version 0.7.1 or earlier, install the latest release manually once. Later up
 
 Reckon reads two protected items: your Akahu connection and the key for local history.
 The current app signature changes between releases, so macOS can ask for permission again after an update.
-This prompt is separate from the ten-minute Touch ID session. API requests reuse the credentials already in memory.
+This prompt is separate from the ten-minute unlocked session. API requests reuse the credentials already in memory.
 
 ### Why can I not unlock Reckon?
 
-Touch ID must be available on your Mac. If Touch ID locks out, unlock your Mac with its password before you try Reckon again.
+Use your Mac login password in the macOS authentication prompt if Touch ID is unavailable or locked. Reckon does not require Touch ID.
+
+If Apple Watch approval is unavailable, check the [unlock setup](#unlock-reckon) or use your Mac login password.
 
 ### Why do bank figures look old?
 

@@ -2,7 +2,7 @@
 // no Effect runtime. Each class carries a `toBank*` method that
 // projects into the domain types from @reckon/domain.
 
-import { AccountId as DomainAccountId, type Account, type Transaction, TransactionId } from "@reckon/domain"
+import { AccountId as DomainAccountId, Account, type Transaction, TransactionId } from "@reckon/domain"
 import { BigDecimal, DateTime, Schema } from "effect"
 
 /** Akahu account identity remains distinct from domain account identity. */
@@ -79,7 +79,7 @@ export class AkahuAccount extends Schema.Class<AkahuAccount, { readonly brand: u
 }) {
   /** Preserve the account currency and convert validated amounts to decimals. */
   toBankAccount(): Account {
-    return {
+    return new Account({
       id: DomainAccountId.make(this._id),
       name: this.name,
       type: toBankAccountType(this.type),
@@ -95,7 +95,7 @@ export class AkahuAccount extends Schema.Class<AkahuAccount, { readonly brand: u
       status: toAccountStatus(this.status),
       bankName: this.connection?.name,
       bankLogo: this.connection?.logo,
-    }
+    })
   }
 }
 

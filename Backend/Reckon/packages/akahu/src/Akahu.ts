@@ -164,9 +164,7 @@ export const AkahuBankDataLayer = Layer.effect(
         const today = yield* bankToday
         const accounts = (yield* listSourceAccounts())
           .map((account) => account.toBankAccount())
-          .filter(
-            (account) => account.currency === "NZD" && (account.type === "checking" || account.type === "savings"),
-          )
+          .filter((account) => account.isLiquidNZD())
         const liquidIds = new Set(accounts.map((account) => account.id))
         const history = yield* fetchTransactions({
           from: addMonths(today, -6),

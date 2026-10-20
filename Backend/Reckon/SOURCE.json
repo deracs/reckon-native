@@ -5,7 +5,7 @@
   "files": [
     {
       "path": "packages/akahu/src/Akahu.ts",
-      "sha256": "0eb55183e9de9ac9c4a455a8f49db13628df09fddbb7fe6876e99f4aa2d8be0e"
+      "sha256": "b17049520bfedcb2d6e0daa6753e12146d9cfc1d12952ce7c5c0a9a235309e11"
     },
     {
       "path": "packages/akahu/src/akahu-http-client.ts",
@@ -17,19 +17,23 @@
     },
     {
       "path": "packages/akahu/src/wire.ts",
-      "sha256": "2979793e8ecac0bcb8f19bf68d475e6a0d60e14e13cb42fb069611ea825fe725"
+      "sha256": "da4ec5e07410acd94a73cce33045c18a2f51533c569dc148b59a552cd5cfe395"
     },
     {
       "path": "packages/domain/src/BankData.ts",
-      "sha256": "cee7b5007eb1b5080acb671c8ebf89fda6202c735bd09330b07302e0edeb0157"
+      "sha256": "90d195d4d2b08bb059dd91e086c470742806e69def9783f8afbd62ed486dae6e"
+    },
+    {
+      "path": "packages/domain/src/bank-calendar.ts",
+      "sha256": "4181388d74c2bcec7c05ae01e32b5053dbca0cda7334077efd790f581272a946"
     },
     {
       "path": "packages/domain/src/derivations.ts",
-      "sha256": "a6c1605fbc7918d1528f7f2b269a6131484fa0d8b8b177a40a16e720dfffb1f9"
+      "sha256": "f46384e7ec94c839338c802eec49892d899aa21f5bee8a4f4cf71618789435ac"
     },
     {
       "path": "packages/domain/src/index.ts",
-      "sha256": "84235d455729fc6808870a4687cb1fa1e8d5211ccab6c0fc27df8ffad5b91ad0"
+      "sha256": "c1cb851cc9344b2855b9b3d4738efced88f451ac6f967e8fc566e49e7bc18a39"
     }
   ]
 }

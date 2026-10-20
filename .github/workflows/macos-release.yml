@@ -46,7 +46,7 @@ jobs:
       - name: Swift checks
         run: swift run -Xswiftc -warnings-as-errors ReckonChecks
       - name: Backend and update-signature checks with synthetic data
-        run: node --test Tests/backend-integration.test.mjs Tests/software-updates.test.mjs
+        run: node --test Tests/domain-models.test.mjs Tests/backend-integration.test.mjs Tests/software-updates.test.mjs
       - name: Verify, sign and package app
         env:
           SPARKLE_PRIVATE_KEY: ${{ github.event_name != 'pull_request' && secrets.SPARKLE_PRIVATE_KEY || '' }}

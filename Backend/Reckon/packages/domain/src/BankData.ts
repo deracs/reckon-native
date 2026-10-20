@@ -1,4 +1,5 @@
 import { Context, Effect, Schema } from "effect"
+import { addDays } from "./bank-calendar.js"
 
 /** Bank account identity shared by source records and calculations. */
 export const AccountId = Schema.String.pipe(Schema.brand("AccountId"))
@@ -11,7 +12,7 @@ export const TransactionId = Schema.String.pipe(Schema.brand("TransactionId"))
 export type TransactionId = typeof TransactionId.Type
 
 /** Account balances retain their own currency; currencies are never converted. */
-export const Account = Schema.Struct({
+export class Account extends Schema.Class<Account, { readonly brand: unique symbol }>("Account")({
   id: AccountId.annotate({
     description: "Unique identifier for the account.",
   }),
@@ -57,10 +58,12 @@ export const Account = Schema.Struct({
       description: "Logo of the bank the account is with.",
     }),
   ),
-})
-
-/** Decoded Account values retain the schema’s domain representation. */
-export type Account = typeof Account.Type
+}) {
+  /** Only NZD checking and savings accounts contribute to liquid balance, including debt. */
+  isLiquidNZD(): boolean {
+    return this.currency === "NZD" && (this.type === "checking" || this.type === "savings")
+  }
+}
 
 /** Transaction amounts are signed decimals, with source merchant and category metadata. */
 export const Transaction = Schema.Struct({
@@ -137,7 +140,9 @@ export const MonthlyCashflow = Schema.Struct({
 export type MonthlyCashflow = typeof MonthlyCashflow.Type
 
 /** Detected recurring charges describe historical evidence rather than confirmed future bills. */
-export const RecurringCharge = Schema.Struct({
+export class RecurringCharge extends Schema.Class<RecurringCharge, { readonly brand: unique symbol }>(
+  "RecurringCharge",
+)({
   merchant: Schema.String.annotate({
     description: "Normalised counterparty name (e.g. 'PAK'nSAVE').",
   }),
@@ -175,10 +180,32 @@ export const RecurringCharge = Schema.Struct({
       description: "Amount of the most recent charge in the cluster — feeds hike detection.",
     }),
   ),
-})
+}) {
+  /** Project dates after the last observation within inclusive bounds, using the existing 7/14/30/91-day intervals. */
+  projectDates(from: string, to: string): ReadonlyArray<string> {
+    const interval = this.cadenceDays()
+    const dates: Array<string> = []
+    let next = addDays(this.lastDate, interval)
+    while (next <= to) {
+      if (next >= from) dates.push(next)
+      next = addDays(next, interval)
+    }
+    return dates
+  }
 
-/** Decoded RecurringCharge values retain the schema’s domain representation. */
-export type RecurringCharge = typeof RecurringCharge.Type
+  private cadenceDays(): number {
+    switch (this.cadence) {
+      case "weekly":
+        return 7
+      case "fortnightly":
+        return 14
+      case "monthly":
+        return 30
+      case "quarterly":
+        return 91
+    }
+  }
+}
 
 /** A projected recurring charge or income event with a signed decimal amount. */
 export const ForecastEvent = Schema.Struct({

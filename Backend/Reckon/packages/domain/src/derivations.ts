@@ -1,12 +1,13 @@
 // Pure calculations over already-fetched bank transactions. No I/O or runtime state.
 import { BigDecimal } from "effect"
+import { RecurringCharge } from "./BankData.js"
+import { addDays } from "./bank-calendar.js"
 import type {
   Forecast,
   ForecastEvent,
   ForecastPoint,
   ForecastRisk,
   MonthlyCashflow,
-  RecurringCharge,
   SpendingByCategory,
   Transaction,
   TransactionId,
@@ -156,19 +157,21 @@ export const detectRecurringCharges = (
     if (first === undefined || last === undefined) continue
     const cadence = classifyCadence(median(intervals))
     if (cadence === undefined) continue
-    results.push({
-      merchant: first.merchant ?? first.description,
-      category: first.category,
-      cadence,
-      occurrences: sorted.length,
-      averageAmount: round2(average),
-      minAmount: round2(amounts.reduce((a, b) => BigDecimal.min(a, b))),
-      maxAmount: round2(amounts.reduce((a, b) => BigDecimal.max(a, b))),
-      totalSpent: round2(total),
-      firstDate: first.date,
-      lastDate: last.date,
-      lastAmount: round2(BigDecimal.abs(last.amount)),
-    })
+    results.push(
+      new RecurringCharge({
+        merchant: first.merchant ?? first.description,
+        category: first.category,
+        cadence,
+        occurrences: sorted.length,
+        averageAmount: round2(average),
+        minAmount: round2(amounts.reduce((a, b) => BigDecimal.min(a, b))),
+        maxAmount: round2(amounts.reduce((a, b) => BigDecimal.max(a, b))),
+        totalSpent: round2(total),
+        firstDate: first.date,
+        lastDate: last.date,
+        lastAmount: round2(BigDecimal.abs(last.amount)),
+      }),
+    )
   }
   return results.sort((a, b) => toNum(BigDecimal.subtract(b.totalSpent, a.totalSpent)))
 }
@@ -186,7 +189,7 @@ export const forecastCashflow = (options: {
   const events: Array<ForecastEvent> = []
 
   for (const charge of options.recurring) {
-    const dates = projectCadence(charge.lastDate, charge.cadence, options.today, endDate)
+    const dates = charge.projectDates(options.today, endDate)
     for (const date of dates) {
       events.push({
         date,
@@ -197,7 +200,7 @@ export const forecastCashflow = (options: {
     }
   }
   for (const inflow of options.income) {
-    const dates = projectCadence(inflow.lastDate, inflow.cadence, options.today, endDate)
+    const dates = inflow.projectDates(options.today, endDate)
     for (const date of dates) {
       events.push({
         date,
@@ -250,52 +253,6 @@ export const forecastCashflow = (options: {
     events,
     risks,
   }
-}
-
-/** Shift a calendar date by whole UTC days, independent of daylight saving. */
-export const addDays = (date: string, days: number): string => {
-  const dt = new Date(`${date}T00:00:00.000Z`)
-  dt.setUTCDate(dt.getUTCDate() + days)
-  return dt.toISOString().slice(0, 10)
-}
-
-// Shift an ISO date by N months (same day-of-month). Used for
-// lookback windows where "6 months back" means calendar-months, not
-// 6 × 30 days.
-/** Shift a lookback date by calendar months using UTC month rollover. */
-export const addMonths = (date: string, months: number): string => {
-  const dt = new Date(`${date}T00:00:00.000Z`)
-  dt.setUTCMonth(dt.getUTCMonth() + months)
-  return dt.toISOString().slice(0, 10)
-}
-
-const cadenceDays = (cadence: RecurringCharge["cadence"]): number => {
-  switch (cadence) {
-    case "weekly":
-      return 7
-    case "fortnightly":
-      return 14
-    case "monthly":
-      return 30
-    case "quarterly":
-      return 91
-  }
-}
-
-const projectCadence = (
-  lastDate: string,
-  cadence: RecurringCharge["cadence"],
-  from: string,
-  to: string,
-): ReadonlyArray<string> => {
-  const interval = cadenceDays(cadence)
-  const result: Array<string> = []
-  let next = addDays(lastDate, interval)
-  while (next <= to) {
-    if (next >= from) result.push(next)
-    next = addDays(next, interval)
-  }
-  return result
 }
 
 const daysBetween = (a: string, b: string): number => {
