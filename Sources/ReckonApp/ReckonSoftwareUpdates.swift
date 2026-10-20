@@ -9,7 +9,6 @@ final class ReckonSoftwareUpdates: NSObject, ObservableObject, SPUUpdaterDelegat
     @Published private(set) var canCheckForUpdates = false
     @Published private(set) var automaticallyChecks = false
     @Published private(set) var automaticallyInstalls = false
-    @Published private(set) var hasGitHubToken = false
     @Published private(set) var message: String?
     private var controller: SPUStandardUpdaterController!
     private var observations: [NSKeyValueObservation] = []
@@ -57,25 +56,6 @@ final class ReckonSoftwareUpdates: NSObject, ObservableObject, SPUUpdaterDelegat
         refreshSettings()
     }
 
-    func saveGitHubToken(_ token: String) {
-        guard !isDemo else { return }
-        do {
-            try ReckonUpdateKeychain.saveToken(token)
-            configureHeaders()
-            controller.updater.resetUpdateCycle()
-            message = "GitHub access saved in Keychain."
-        } catch { message = "Could not save GitHub access. Use a fine-grained GitHub token and check Keychain access." }
-    }
-
-    func removeGitHubToken() {
-        guard !isDemo else { return }
-        do {
-            try ReckonUpdateKeychain.deleteToken()
-            configureHeaders()
-            message = "GitHub access removed. Public updates still work."
-        } catch { message = "Could not remove GitHub access from Keychain." }
-    }
-
     func feedURLString(for updater: SPUUpdater) -> String? { ReckonUpdateFeed.feedURL.absoluteString }
 
     func allowedSystemProfileKeys(for updater: SPUUpdater) -> [String]? { [] }
@@ -92,21 +72,11 @@ final class ReckonSoftwareUpdates: NSObject, ObservableObject, SPUUpdaterDelegat
     }
 
     func updater(_ updater: SPUUpdater, didAbortWithError error: any Error) {
-        message = "Could not check or install an update. For a private repository, save a GitHub token with Contents read access to reckon-native."
+        message = "Could not check or install an update. Check your internet connection and try again."
     }
 
     private func configureHeaders() {
-        var headers = ["Accept": "application/vnd.github.raw+json", "X-GitHub-Api-Version": "2022-11-28"]
-        do {
-            if let token = try ReckonUpdateKeychain.loadToken() {
-                headers["Authorization"] = "Bearer \(token)"
-                hasGitHubToken = true
-            } else { hasGitHubToken = false }
-        } catch {
-            message = "Could not read GitHub access from Keychain."
-            hasGitHubToken = false
-        }
-        controller.updater.httpHeaders = headers
+        controller.updater.httpHeaders = ["Accept": "application/vnd.github.raw+json", "X-GitHub-Api-Version": "2022-11-28"]
     }
 
     private func refreshSettings() {

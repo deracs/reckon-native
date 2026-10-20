@@ -7,7 +7,6 @@ struct ReckonPreferencesView: View {
     @ObservedObject var softwareUpdates: ReckonSoftwareUpdates
     let close: () -> Void
     @State private var selectedTab = "Connection"
-    @State private var githubToken = ""
     @State private var limits: [String: String] = [:]
     @State private var changingPermission = false
     private let tabs = ["Connection", "Alerts", "Controls", "Updates"]
@@ -120,20 +119,6 @@ struct ReckonPreferencesView: View {
             Toggle("Download and install updates automatically", isOn: Binding(
                 get: { softwareUpdates.automaticallyInstalls }, set: { softwareUpdates.setAutomaticInstalls($0) }))
                 .disabled(store.isDemo || !softwareUpdates.automaticallyChecks)
-            Divider()
-            HStack(spacing: 6) {
-                Text("Private GitHub access").font(.headline)
-                ReckonInfoHelp(subject: "Private GitHub access", explanation: "Public repositories need no token. For a private repository, create a fine-grained GitHub token limited to reckon-native with Contents: Read-only. It stays in this Mac’s Keychain, separate from your Akahu tokens. Never paste an Akahu token here.")
-            }
-            SecureField(softwareUpdates.hasGitHubToken ? "Replace saved GitHub token" : "GitHub token, if required", text: $githubToken)
-                .textFieldStyle(.roundedBorder)
-            HStack {
-                Button("Save access") { softwareUpdates.saveGitHubToken(githubToken); githubToken = "" }
-                    .disabled(store.isDemo || githubToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                if softwareUpdates.hasGitHubToken {
-                    Button("Remove access") { softwareUpdates.removeGitHubToken() }.disabled(store.isDemo)
-                }
-            }
             if let message = softwareUpdates.message { Text(message).font(.caption).foregroundStyle(.secondary) }
         }
     }

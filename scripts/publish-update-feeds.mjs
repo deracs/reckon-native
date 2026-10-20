@@ -18,7 +18,8 @@ function github(path, method = "GET", body) {
     input: body ? JSON.stringify(body) : undefined, encoding: "utf8", maxBuffer: 8 * 1024 * 1024,
   }))
 }
-const release = publish ? github(`releases/tags/${tag}`) : null
+const release = publish ? github("releases?per_page=100").find(item => item.tag_name === tag) : null
+if (publish && !release) throw new Error("No draft or published release matches this tag.")
 const expectedKey = execFileSync("/usr/libexec/PlistBuddy", ["-c", "Print SUPublicEDKey", resolve(project, "Resources/Info.plist")], { encoding: "utf8" }).trim()
 const entries = []
 for (const architecture of ["arm64", "x86_64"]) {

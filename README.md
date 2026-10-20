@@ -82,11 +82,11 @@ The completed app has no dependency on source directories or build tools. Person
 
 ## GitHub builds and releases
 
-The private repository is [deracs/reckon-native](https://github.com/deracs/reckon-native). Pushes to `main` and pull requests build and check Apple silicon and Intel variants. The workflow uses synthetic bank fixtures, needs no Akahu tokens, and uploads ZIPs, SHA-256 checksums, and public update-signature metadata as Actions artifacts. A version tag such as `v0.7.0` creates a GitHub release after both builds and their checks pass. The release job signs and publishes the architecture-specific Sparkle feeds in `updates/` on `main`. The tag must match `CFBundleShortVersionString` in `Resources/Info.plist`.
+The public repository is [deracs/reckon-native](https://github.com/deracs/reckon-native). Pushes to `main` and pull requests build and check Apple silicon and Intel variants. The workflow uses synthetic bank fixtures, needs no Akahu tokens, and uploads ZIPs, SHA-256 checksums, and public update-signature metadata as Actions artifacts. A version tag such as `v0.7.1` creates a GitHub release after both builds and their checks pass. The release job signs and publishes the architecture-specific Sparkle feeds in `updates/` on `main`. The tag must match `CFBundleShortVersionString` in `Resources/Info.plist`.
 
 ```sh
-git tag v0.7.0
-git push origin v0.7.0
+git tag v0.7.1
+git push origin v0.7.1
 ```
 
 Release access follows the repository’s visibility. The ZIP contains only the app and runtime; each user connects their own Akahu tokens. It does not export a Keychain entry or local history. A Mac without Touch ID cannot unlock the current app.
@@ -142,7 +142,7 @@ See [the publication audit](docs/PUBLICATION-AUDIT.md) for the checked scope and
 
 Settings → Updates has **Check for Updates**, automatic check and automatic installation controls. Reckon checks GitHub every six hours by default. Sparkle downloads signed updates, installs them when the app quits, and can relaunch it when requested. Bank credentials, encrypted history and launch-at-login settings remain on this Mac. Updates restart with Reckon locked; the normal Touch ID policy still applies. Demo mode never starts the updater.
 
-Public repositories need no GitHub token. Private repositories require a fine-grained GitHub token selected for `deracs/reckon-native` with **Contents: Read-only** access. Save it in Settings → Updates. It stays in a separate Keychain entry. Never use an Akahu token for software updates. Removing GitHub access does not disconnect bank accounts. Keeping the repository private without a token causes update checks to fail safely; bank-data polling continues.
+Updates come from the public `deracs/reckon-native` repository. No GitHub token or sign-in is required, and the updater never reads or sends Akahu credentials. The original Reckon monorepo is separate and stays private.
 
 Feeds and archives use Ed25519 signatures with `SURequireSignedFeed` and `SUVerifyUpdateBeforeExtraction` enabled. The verification key is in the app; the dedicated signing key is in the maintainer's Keychain and the `SPARKLE_PRIVATE_KEY` GitHub Actions secret. Do not rotate or lose it casually: installed apps trust that key. The local Sparkle tools use Keychain account `nz.reckon.native.update-signing`. The release-signing script verifies the public key matches before publishing a signature. A separate test signs synthetic updates and confirms that wrong keys and tampered archives or feeds are rejected.
 
