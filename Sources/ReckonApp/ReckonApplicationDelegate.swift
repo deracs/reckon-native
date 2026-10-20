@@ -21,7 +21,7 @@ final class ReckonApplicationDelegate: NSObject, NSApplicationDelegate, NSWindow
     func applicationDidFinishLaunching(_ notification: Notification) {
         let isDemo = ProcessInfo.processInfo.arguments.contains("--demo")
         store = BankDashboardStore(isDemo: isDemo)
-        appLock = ReckonAppLock(authenticator: isDemo ? ReckonDemoAuthentication() : ReckonTouchID())
+        appLock = ReckonAppLock(authenticator: isDemo ? ReckonDemoAuthentication() : ReckonLocalAuthentication())
         softwareUpdates = ReckonSoftwareUpdates(isDemo: isDemo)
         shortcut = ReckonKeyboardShortcut()
         shortcut.onActivate = { [weak self] in self?.toggleDashboard() }
@@ -215,7 +215,7 @@ final class ReckonApplicationDelegate: NSObject, NSApplicationDelegate, NSWindow
         let unlocked = appLock.isUnlocked
         statusItem.button?.title = ""
         statusItem.button?.image = NSImage(systemSymbolName: "chart.bar.xaxis", accessibilityDescription: nil)
-        statusItem.button?.setAccessibilityLabel(unlocked ? "Reckon. Liquid balance \(store.menuBarTitle)" : "Reckon. Locked. Unlock with Touch ID")
+        statusItem.button?.setAccessibilityLabel(unlocked ? "Reckon. Liquid balance \(store.menuBarTitle)" : "Reckon. Locked. Unlock Reckon")
     }
 }
 
@@ -235,11 +235,11 @@ private struct ReckonLockedView: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            Image(systemName: "touchid").font(.system(size: 38)).foregroundStyle(.secondary)
+            Image(systemName: "lock.shield").font(.system(size: 38)).foregroundStyle(.secondary)
             Text("Reckon is locked").font(.system(.title2, design: .serif).weight(.semibold))
-            Text(appLock.errorMessage ?? "Use Touch ID to view your accounts.")
+            Text(appLock.errorMessage ?? "Use Touch ID, Apple Watch, or your Mac login password to view your accounts.")
                 .font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
-            Button(appLock.state == .authenticating ? "Waiting for Touch ID…" : "Unlock with Touch ID", action: unlock)
+            Button(appLock.state == .authenticating ? "Unlock in the macOS prompt…" : "Unlock Reckon", action: unlock)
                 .disabled(appLock.state == .authenticating)
             Button("Quit Reckon") { NSApp.terminate(nil) }.buttonStyle(.borderless)
         }

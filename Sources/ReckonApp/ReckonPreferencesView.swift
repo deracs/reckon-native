@@ -127,7 +127,7 @@ struct ReckonPreferencesView: View {
         VStack(alignment: .leading, spacing: 20) {
             Text("Open from anywhere").font(.system(.title2, design: .serif).weight(.semibold))
             Toggle("Control–Option–R", isOn: Binding(get: { shortcut.isEnabled }, set: { shortcut.setEnabled($0) }))
-            Text("The shortcut opens Reckon. Touch ID still applies, with the same ten-minute session.")
+            Text("The shortcut opens Reckon. Authentication still applies, with the same ten-minute session.")
                 .font(.callout).foregroundStyle(.secondary)
             if let message = shortcut.message { Text(message).font(.caption).foregroundStyle(.orange) }
             Divider()

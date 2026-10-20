@@ -55,7 +55,7 @@ For UI checks with sample data:
 open -n dist/Reckon.app --args --demo --preview
 ```
 
-Demo mode displays a sample-data label and skips Touch ID for UI checks. It does not read the saved credentials or start a backend. Only these fixtures are available in demo mode. The `--preview` option also opens the dropdown in a window.
+Demo mode displays a sample-data label and skips authentication for UI checks. It does not read the saved credentials or start a backend. Only these fixtures are available in demo mode. The `--preview` option also opens the dropdown in a window.
 
 ## Data and calculations
 
@@ -63,7 +63,7 @@ The dropdown has one row of six icon tabs with hover labels: **Overview**, **Acc
 
 Small info icons beside headings hold longer explanations: hover for a tooltip or click for a readable popover. Currency and estimate warnings remain visible. A tab change returns that list to the top.
 
-- The menu bar always shows only the chart icon. Liquid balance appears in the dropdown after Touch ID authentication.
+- The menu bar always shows only the chart icon. Liquid balance appears in the dropdown after macOS authentication.
 - Liquid balance includes NZD checking and savings accounts only.
 - Accounts are grouped into collapsible bank sections, initially closed. Each bank header shows Akahu's logo, its account count, and current combined balances, with a separate total for each currency. Totals include negative balances. Currencies are never converted or added together. Click anywhere in the header row to expand or collapse it. Expanded accounts retain their own currencies. Missing or unavailable logos use a bank symbol.
 - This month shows income, spending, and net cashflow through today.
@@ -95,7 +95,27 @@ Alerts are off initially. Open Settings → Alerts to enable notifications and c
 
 Balance alerts trigger on crossings from at-or-above to below the chosen limit, with no first-fetch or repeated-below alerts. A currency change clears that account’s limit. Standing order alerts compare the NZD recurring estimates used by Dead reckoning. A first observation sets the baseline. Repeats or decreases do not alert. These are changes in detected estimates, not confirmation that a merchant changed its price.
 
-Notifications have no sound and hide account names and amounts. Open Reckon to view details through the normal Touch ID session. The app reads data every five minutes while its interface is locked. Alerts need Reckon to remain open with access to bank data. They do not request an upstream bank refresh.
+Notifications have no sound and hide account names and amounts. Open Reckon to view details through the normal unlocked session. The app reads data every five minutes while its interface is locked. Alerts need Reckon to remain open with access to bank data. They do not request an upstream bank refresh.
+
+## App authentication
+
+`Sources/ReckonApp/ReckonLocalAuthentication.swift` uses `LAPolicy.deviceOwnerAuthentication` for both the availability check and authentication.
+This policy permits Touch ID, Apple Watch, or the Mac login password. macOS controls which methods are available.
+The app leaves the fallback button at its system default. It does not collect the Mac login password.
+
+`ReckonAppLock` starts a ten-minute session after successful authentication. Lock, sleep, and macOS session switches cancel authentication in progress.
+Replies from canceled or previous attempts cannot unlock a new session.
+
+The automated checks cover session expiry, cancellation, rejection, and stale replies. They do not exercise the macOS authentication prompt.
+Before a release, do these manual checks with a normal app build and the available hardware.
+Record any checks that you cannot complete in the release notes:
+
+1. Unlock Reckon with Touch ID on a Mac with a registered fingerprint.
+2. Lock Reckon, then unlock it with the Mac login password through the macOS prompt.
+3. Confirm that password authentication works on a Mac without Touch ID.
+4. Unlock Reckon with an Apple Watch that meets [Apple’s setup requirements](https://support.apple.com/en-us/102442).
+5. Cancel the macOS prompt. Confirm that Reckon stays locked.
+6. Lock Reckon or put the Mac to sleep while a prompt is open. Confirm that it stays locked after cancellation.
 
 ## Backend ownership
 
@@ -103,7 +123,7 @@ Notifications have no sound and hide account names and amounts. Open Reckon to v
 
 `Backend/backend-main.ts` wires the existing Reckon API contract, handlers, Akahu adapter, and domain calculations. It listens on `127.0.0.1` with an OS-selected port. It permits authenticated GET requests to accounts, cashflow, spending, recurring charges, freshness, transactions, forecast, and health only. Requests from browser origins, incorrect Host headers, writes, and unrelated API routes are rejected. Logs contain no bank records or credentials.
 
-`scripts/build-backend.mjs` creates one JavaScript bundle from the source snapshot in `Backend/Reckon`. `Sources/ReckonApp` owns SwiftUI, the native status item and popover lifecycle, Touch ID, and Keychain access. `ReckonAppLock` rejects authentication replies from cancelled or previous sessions. No database or TypeScript calculation port is needed.
+`scripts/build-backend.mjs` creates one JavaScript bundle from the source snapshot in `Backend/Reckon`. `Sources/ReckonApp` owns SwiftUI, the native status item and popover lifecycle, macOS authentication, and Keychain access. `ReckonAppLock` rejects authentication replies from cancelled or previous sessions. No database or TypeScript calculation port is needed.
 
 The backend typecheck retains the Reckon snapshot’s existing optional-property and array-index rules. The options `exactOptionalPropertyTypes` and `noUncheckedIndexedAccess` produce errors in imported Reckon source, such as `Akahu.ts`, `CashRunway.ts`, and `derivations.ts`. The source snapshot preserves those rules. All other configured strict checks and Effect diagnostics apply.
 
@@ -118,7 +138,7 @@ git tag vX.Y.Z
 git push origin vX.Y.Z
 ```
 
-Release access follows the repository’s visibility. The ZIP contains only the app and runtime. Each user connects their own Akahu tokens. It does not export a Keychain entry or local history. A Mac without Touch ID cannot unlock the current app.
+Release access follows the repository’s visibility. The ZIP contains only the app and runtime. Each user connects their own Akahu tokens. It does not export a Keychain entry or local history.
 
 The app icon uses the existing Reckon monogram as a reference. The built-in imagegen tool generated `Resources/AppIcon-source.png`. The exact prompt is in `Resources/AppIcon-prompt.txt`. The build exports the PNG at macOS icon sizes and creates `Resources/Reckon.icns`. Image transparency stays unchanged.
 
@@ -126,7 +146,7 @@ The app icon uses the existing Reckon monogram as a reference. The built-in imag
 
 Settings → Updates has **Check for Updates**, automatic check and automatic installation controls. Reckon checks GitHub every six hours by default. Sparkle downloads signed updates, installs them when the app quits, and can relaunch it when requested. Bank credentials, encrypted history and launch-at-login settings remain on this Mac.
 
-Updates restart with Reckon locked. The normal Touch ID policy still applies. Demo mode never starts the updater.
+Updates restart with Reckon locked. The normal macOS authentication policy still applies. Demo mode never starts the updater.
 
 Updates come from the public `deracs/reckon-native` repository. No GitHub token or sign-in is required, and the updater never reads or sends Akahu credentials. The original Reckon monorepo is separate and stays private.
 
