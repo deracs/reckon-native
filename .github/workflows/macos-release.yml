@@ -1,0 +1,80 @@
+name: macOS build and release
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.21.0'
+          cache: pnpm
+      - name: Install pinned backend dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Check source privacy
+        run: pnpm check:privacy
+      - name: Typecheck bundled backend
+        run: pnpm check
+      - name: Download standalone Node runtime and verify checksum
+        run: ./scripts/download-node.sh
+      - name: Build app
+        run: ./scripts/build-app.sh
+      - name: Swift checks
+        run: swift run -Xswiftc -warnings-as-errors ReckonChecks
+      - name: Backend integration checks with synthetic bank data
+        run: node --test Tests/backend-integration.test.mjs
+      - name: Verify and package app
+        run: ./scripts/package-release.sh
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: Reckon-macOS-${{ matrix.arch }}
+          path: dist/release/*
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: Publish private GitHub release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          pattern: Reckon-macOS-*
+          path: release
+          merge-multiple: true
+      - name: Create release with both Mac architectures
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: gh release create "$RELEASE_TAG" release/* --verify-tag --title "Reckon $RELEASE_TAG" --notes-file .github/release-notes.md

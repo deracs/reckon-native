@@ -1,0 +1,32 @@
+{
+  "name": "reckon-native",
+  "private": true,
+  "version": "0.6.0",
+  "type": "module",
+  "packageManager": "pnpm@10.12.1",
+  "scripts": {
+    "check": "node scripts/build-backend.mjs --check",
+    "build": "./scripts/build-app.sh",
+    "check:privacy": "node scripts/check-release-privacy.mjs",
+    "prepare": "effect-tsgo patch"
+  },
+  "dependencies": {
+    "effect": "4.0.0-rc.117",
+    "@effect/platform-node": "4.0.0-rc.117"
+  },
+  "devDependencies": {
+    "@types/node": "25.3.0",
+    "esbuild": "0.25.12",
+    "typescript": "7.0.2",
+    "@effect/tsgo": "0.38.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "@effect/tsgo"
+    ],
+    "overrides": {
+      "@effect/platform-node-shared": "4.0.0-rc.117"
+    }
+  }
+}

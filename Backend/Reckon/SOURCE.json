@@ -1,0 +1,87 @@
+{
+  "repository": "https://github.com/deracs/reckon",
+  "baseCommit": "8dbc7283a7d2aa0f2fae812eb35cde610afe1552",
+  "snapshot": "Includes working-tree changes required by the native app; file hashes identify this snapshot. Only source files in the bundled dependency graph were copied.",
+  "files": [
+    {
+      "path": "packages/akahu/src/nzfcc-categories.json",
+      "sha256": "fa71f704fe95a3dd94de7f0985264979730cd1a934f8b615ad7b3b65b47140d3"
+    },
+    {
+      "path": "packages/domain/src/BankData.ts",
+      "sha256": "46f9a9e29029d79baa09ba107eccc032213d656ec071edc93c460af2b7a3b60d"
+    },
+    {
+      "path": "packages/domain/src/GoalCreation.ts",
+      "sha256": "0607bd5b43c482bf611e82e1cb82d82f704376a72cb4e343b5f6b5dbe7a174be"
+    },
+    {
+      "path": "packages/domain/src/Categorisation.ts",
+      "sha256": "fce1d1d91d306ff9c0a0ce987368d378647ded50aa92d89110bfc3ef8d97a523"
+    },
+    {
+      "path": "packages/domain/src/derivations.ts",
+      "sha256": "1f113056f297df40ac0253c803addfc715c8c26c033b5812bad17ca3ab4207ac"
+    },
+    {
+      "path": "packages/domain/src/CashRunway.ts",
+      "sha256": "92927f931be03f317b34c880f56e75363a5f17c24cb05889d9927d6175066e19"
+    },
+    {
+      "path": "packages/domain/src/BankSync.ts",
+      "sha256": "caa3f7553be11893c0acd2c2d9e4e9ee609d9111250d09a604769faf8db357f0"
+    },
+    {
+      "path": "packages/domain/src/BankWriter.ts",
+      "sha256": "0c40489f8f41bdfae5df0337dddc461d0cfb235ad15c5b4cef3bac0842460411"
+    },
+    {
+      "path": "packages/domain/src/flags.ts",
+      "sha256": "7ac5959b8443bf5363024adee8133d4082161dcaf688238075dda0d1fd2d7b58"
+    },
+    {
+      "path": "packages/domain/src/fortnight.ts",
+      "sha256": "65186dd05b7b4b37f817813a4e2f3836788c4210fac3a2003e74862105508ca5"
+    },
+    {
+      "path": "packages/domain/src/bill-reserves.ts",
+      "sha256": "19200ab70de86c4b0acd1503a5a6220f3fe3f66cba5f8497cd43360c9d7c8afb"
+    },
+    {
+      "path": "packages/domain/src/forecast-planning.ts",
+      "sha256": "cd6b2c0cc60be8d975f069437771e00abf0ff5926b78c7ffa6c3431bb793420e"
+    },
+    {
+      "path": "packages/domain/src/savings-evidence.ts",
+      "sha256": "064204fb76602e7aa52fa4f716fca5469d0575fb23513c28da92aa303cf58805"
+    },
+    {
+      "path": "packages/domain/src/index.ts",
+      "sha256": "a9d6c0c054ba08dab244c33c5dc18eea02f075f42969c5bc6690179808633b0a"
+    },
+    {
+      "path": "packages/akahu/src/wire.ts",
+      "sha256": "4d6102136ce0f4cebeaae63b2d988eacc8d10acc1fb3b9fe7d04670b9427071f"
+    },
+    {
+      "path": "packages/akahu/src/Akahu.ts",
+      "sha256": "ef0f15465df9b618dfe99b83517f39f02ed18f65c1e6ceefa9ffb4f8b5a4eafe"
+    },
+    {
+      "path": "packages/akahu/src/BankSync.ts",
+      "sha256": "60743014310688d6a0cdd1858493d9fb2025c016086d9559cfbdd16f8209b645"
+    },
+    {
+      "path": "packages/akahu/src/index.ts",
+      "sha256": "64e5c4ca61fb153645b8e678f90aa31fb508c0a8ea42072dc8a3f0d0e4f823b1"
+    },
+    {
+      "path": "packages/api/src/index.ts",
+      "sha256": "91548c49d06e4d05829523b3ca2d2e545a3173db710b60083db265ddee748070"
+    },
+    {
+      "path": "apps/server/src/handlers.ts",
+      "sha256": "0a03696a48c607ac40a6de197a197a0a18faad90cf1852ba89a9fdc34ee3defd"
+    }
+  ]
+}

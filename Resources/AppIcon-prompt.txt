@@ -1,0 +1,10 @@
+Generated with the built-in image_gen tool.
+
+Use case: logo-brand
+Asset type: production macOS application icon for Reckon, a New Zealand personal-finance menu bar app.
+Input image 1: brand reference, the existing ivory editorial serif R monogram on deep forest green. Preserve this distinctive R silhouette, broad serif strokes, open counter and diagonal leg.
+Primary request: Create one finished native macOS app icon from this monogram, with a refined forest-green rounded-square tile and a warm ivory R. The tile should have subtle enamel depth and restrained edge lighting, with the ivory letter appearing slightly raised. Quiet, practical, editorial and beautifully proportioned, readable at small icon sizes.
+Composition: square image, centered front-facing icon, the rounded square occupying approximately 82 percent of the canvas width, generous even transparent margins outside the tile. R occupies approximately 68 percent of tile height.
+Palette: deep forest green #293832 and warm ivory #F6F4EF, matching the reference.
+Text verbatim: "R". Exactly one R, no other text.
+Constraints: deliver the actual standalone app icon asset, not a mockup or presentation board. Transparent background outside the rounded square, including transparent corners. Keep the letter's open counter green. No charts, coins, arrows, dollar signs, badges, extra symbols, watermark, perspective tilt or decorative scene. Very subtle depth only, strong clean silhouette.
