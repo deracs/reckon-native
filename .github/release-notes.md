@@ -4,7 +4,7 @@ This release adds Mac login password fallback and enables Apple Watch approval t
 
 Password fallback works without Touch ID. For Apple Watch approval, enable your watch in System Settings → Touch ID & Password (or Login Password). See [Apple’s setup requirements](https://support.apple.com/en-us/102442).
 
-Apple Watch approval has no physical-device test for this release because no watch was available.
+Mac login password unlock passed a manual check on Apple silicon. Apple Watch approval has no physical-device test for this release because no watch was available.
 
 Download the ZIP for your Mac: `arm64` for Apple silicon, `x86_64` for Intel. Extract Reckon.app, move it to Applications, open it, and connect your own Akahu tokens. Tokens and bank history are not included.
 
