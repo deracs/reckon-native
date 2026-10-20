@@ -25,3 +25,21 @@ A dedicated update-signing private key is stored in the maintainer's Keychain an
 The owner authorised making this native repository public after the source and releases were checked. A final audit examined all reachable Git history, all branches and tags, against saved bank secrets and the signing key. Commit author emails use GitHub noreply. GitHub account ownership, source provenance, and public open-source dependency credits are intentionally visible. Bank screenshots, raw records, local encrypted history and bank credentials remain excluded. The original Reckon monorepo was not published.
 
 Public updates require no GitHub token. The updater therefore has no private-repository credential or Keychain read. Tests use demo mode or synthetic fixtures; these do not touch the user's Keychain. Current ad-hoc app signatures change per binary, so macOS may request bank Keychain access after an actual app replacement. Avoiding that across updates requires a stable code-signing identity, normally Developer ID; it is not appropriate to weaken the Keychain access policy.
+
+## Demo screenshots and repeat audit — 21 October 2026
+
+The README screenshots show Reckon 0.7.4 with `--demo --preview`. Each screenshot retains the **SAMPLE DATA** label. Account names and amounts come from `Sources/ReckonCore/SampleDashboard.swift`. The demo balance history uses synthetic observations from `BankDashboardStore`.
+
+Demo mode returns before the app reads Keychain, loads local history, or starts its backend. The capture used a separate demo app copy. The screenshots contain only the demo preview window. They exclude EXIF, Photoshop, and display-profile metadata.
+
+The repeat audit used a fresh mirror of the public repository at commit `67ddd459dbcfaa28a5bf3fd856c0f8669cafeed2`. It covered:
+
+- The public branch and all eight public tags: 12 reachable commits and 138 file blobs.
+- All four published releases: 0.6.2, 0.7.1, 0.7.2, and 0.7.4.
+- All eight release apps for Apple silicon and Intel, with 580 bundle files in total, plus eight checksum attachments.
+- Release descriptions and attachments. The repository had no issues or pull requests at the time of the audit.
+- The three new screenshots, including visual review, source fixtures, and image metadata.
+
+Each release archive and checksum attachment matched GitHub's published SHA-256 digest. The archive checks found no extra files outside the app and macOS archive metadata. The bundle signatures verified. Source history and release files passed checks for saved secret values from the local environment file. Checks also covered credential patterns, bank account numbers, live Akahu account and transaction IDs, personal home paths, and private data files.
+
+The staged documentation and screenshots also passed the repository privacy check. The audit found no personal bank records or Akahu credentials in the checked public material. The original Reckon monorepo remains private. The scope and limits above still apply to future changes and uploads.

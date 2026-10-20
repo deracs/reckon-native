@@ -5,6 +5,16 @@ Reckon connects to Akahu and runs as a standalone app. You do not need a termina
 
 **[Download the latest release](https://github.com/deracs/reckon-native/releases/latest)**
 
+## Screenshots
+
+These screenshots show fictional demo data. Demo mode does not read saved credentials or bank history.
+
+| Overview | Accounts | Dead reckoning |
+| --- | --- | --- |
+| <a href="docs/screenshots/overview-demo.jpg"><img src="docs/screenshots/overview-demo.jpg" alt="Overview with the SAMPLE DATA label and fictional balances" width="250"></a> | <a href="docs/screenshots/accounts-demo.jpg"><img src="docs/screenshots/accounts-demo.jpg" alt="Sample Bank accounts with fictional balances and history" width="250"></a> | <a href="docs/screenshots/dead-reckoning-demo.jpg"><img src="docs/screenshots/dead-reckoning-demo.jpg" alt="Dead reckoning with a fictional 30-day balance estimate" width="250"></a> |
+
+Click a screenshot to view it at full size.
+
 ## What you need
 
 - **macOS 15 or later.** Apple silicon and Intel Macs are supported.
