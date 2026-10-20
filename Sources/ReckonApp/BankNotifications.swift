@@ -8,7 +8,7 @@ final class BankNotifications {
 
     func requestPermission() async throws -> Bool {
         try await withCheckedThrowingContinuation { continuation in
-            center.requestAuthorization(options: [.alert]) { granted, error in
+            center.requestAuthorization(options: [.alert]) { @Sendable granted, error in
                 if let error { continuation.resume(throwing: error) }
                 else { continuation.resume(returning: granted) }
             }
@@ -17,7 +17,7 @@ final class BankNotifications {
 
     func permissionDescription() async -> String {
         await withCheckedContinuation { continuation in
-            center.getNotificationSettings { settings in
+            center.getNotificationSettings { @Sendable settings in
                 let message: String
                 switch settings.authorizationStatus {
                 case .authorized, .provisional, .ephemeral: message = "Notifications allowed. Banners hide account names and amounts."
@@ -39,7 +39,7 @@ final class BankNotifications {
                 : "A standing order estimate increased. Open Reckon to see the details."
             let request = UNNotificationRequest(identifier: alert.id.uuidString, content: content, trigger: nil)
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
-                center.add(request) { error in
+                center.add(request) { @Sendable error in
                     if let error { continuation.resume(throwing: error) }
                     else { continuation.resume() }
                 }
