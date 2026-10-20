@@ -28,9 +28,9 @@ Public updates require no GitHub token. The updater therefore has no private-rep
 
 ## Demo screenshots and repeat audit — 21 October 2026
 
-The README screenshots show Reckon 0.7.4 with `--demo --preview`. Each screenshot retains the **SAMPLE DATA** label. Account names and amounts come from `Sources/ReckonCore/SampleDashboard.swift`. The demo balance history uses synthetic observations from `BankDashboardStore`.
+The README screenshots show Reckon 0.7.4 with `--demo`. Each screenshot retains the **SAMPLE DATA** label. Account names and amounts come from `Sources/ReckonCore/SampleDashboard.swift`. The demo balance history uses synthetic observations from `BankDashboardStore`.
 
-Demo mode returns before the app reads Keychain, loads local history, or starts its backend. The capture used a separate demo app copy. The screenshots contain only the demo preview window. They exclude EXIF, Photoshop, and display-profile metadata.
+Demo mode returns before the app reads Keychain, loads local history, or starts its backend. The capture used a separate demo app copy. The screenshots contain only the demo dropdown. The dropdown captures exclude the preview title bar and its screen-share indicator. They exclude EXIF, Photoshop, and display-profile metadata.
 
 The repeat audit used a fresh mirror of the public repository at commit `67ddd459dbcfaa28a5bf3fd856c0f8669cafeed2`. It covered:
 
