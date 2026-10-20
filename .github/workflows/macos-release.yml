@@ -3,7 +3,7 @@ name: macOS build and release
 on:
   push:
     branches: [main]
-    tags: ['v*']
+    tags: ["v*"]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -31,13 +31,13 @@ jobs:
       - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          node-version: '24.21.0'
+          node-version: "24.21.0"
           cache: pnpm
       - name: Install pinned backend dependencies
         run: pnpm install --frozen-lockfile
       - name: Check source privacy
         run: pnpm check:privacy
-      - name: Typecheck bundled backend
+      - name: Typecheck, lint and check formatting
         run: pnpm check
       - name: Download standalone Node runtime and verify checksum
         run: ./scripts/download-node.sh
@@ -76,7 +76,7 @@ jobs:
           merge-multiple: true
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          node-version: '24.21.0'
+          node-version: "24.21.0"
       - name: Resolve pinned Sparkle signing tools
         run: swift package resolve
       - name: Create draft release with both Mac architectures

@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "module": "Preserve",
+    "moduleResolution": "Bundler",
+    "types": ["node"],
+    "paths": {
+      "@reckon/akahu": ["./Backend/Reckon/packages/akahu/src/index.ts"],
+      "@reckon/domain": ["./Backend/Reckon/packages/domain/src/index.ts"]
+    }
+  },
+  "include": ["Backend/**/*.ts", "Tests/**/*.ts"]
+}

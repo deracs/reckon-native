@@ -15,7 +15,9 @@ const envIndex = args.indexOf("--env-file")
 if (envIndex >= 0) {
   if (!args[envIndex + 1]) throw new Error("Privacy check requires an env file path.")
   const values = parseEnv(await readFile(resolve(args[envIndex + 1]), "utf8"))
-  knownSecrets = Object.entries(values).filter(([key, value]) => /TOKEN|SECRET|PASSWORD|API_KEY|DATABASE_URL/.test(key) && value.length >= 12).map(([, value]) => Buffer.from(value))
+  knownSecrets = Object.entries(values)
+    .filter(([key, value]) => /TOKEN|SECRET|PASSWORD|API_KEY|DATABASE_URL/.test(key) && value.length >= 12)
+    .map(([, value]) => Buffer.from(value))
 }
 if (process.env.SPARKLE_PRIVATE_KEY) knownSecrets.push(Buffer.from(process.env.SPARKLE_PRIVATE_KEY.trim()))
 const signingIndex = args.indexOf("--signing-key-file")
@@ -35,7 +37,7 @@ const patterns = [
   ["live Akahu account or transaction ID", /\b(?:acc|trans)_[a-zA-Z0-9]{16,}\b/g],
 ]
 function inspect(label, bytes) {
-  if (knownSecrets.some(secret => bytes.includes(secret))) issues.push(`${label}: matches a saved secret`)
+  if (knownSecrets.some((secret) => bytes.includes(secret))) issues.push(`${label}: matches a saved secret`)
   if (personalSourcePath && bytes.includes(personalHome)) issues.push(`${label}: personal home path`)
   const text = bytes.toString("utf8")
   for (const [name, pattern] of patterns) {
@@ -43,11 +45,28 @@ function inspect(label, bytes) {
     if (pattern.test(text)) issues.push(`${label}: ${name}`)
   }
 }
+let inspectedFiles = 0
 for (const file of files) {
-  if (/(?:^|\/)(?:\.env(?:\..*)?|node_modules|\.build|dist|\.swiftpm|\.DS_Store)(?:\/|$)|\.(?:enc|sqlite|sqlite3|db|p12|pfx|pem|key|mobileprovision|zip|dmg|log)$|\.app\//i.test(file)) {
+  let bytes
+  if (staged) {
+    bytes = execFileSync("git", ["show", `:${file}`], { cwd: project, maxBuffer: 32 * 1024 * 1024 })
+  } else {
+    try {
+      bytes = await readFile(resolve(project, file))
+    } catch (error) {
+      if (error.code === "ENOENT") continue
+      throw error
+    }
+  }
+  if (
+    /(?:^|\/)(?:\.env(?:\..*)?|node_modules|\.build|dist|\.swiftpm|\.DS_Store)(?:\/|$)|\.(?:enc|sqlite|sqlite3|db|p12|pfx|pem|key|mobileprovision|zip|dmg|log)$|\.app\//i.test(
+      file,
+    )
+  ) {
     issues.push(`${file}: private or generated file must not be tracked`)
   }
-  inspect(file, staged ? execFileSync("git", ["show", `:${file}`], { cwd: project, maxBuffer: 32 * 1024 * 1024 }) : await readFile(resolve(project, file)))
+  inspect(file, bytes)
+  inspectedFiles += 1
 }
 const appIndex = args.indexOf("--app")
 if (appIndex >= 0) {
@@ -60,12 +79,16 @@ if (appIndex >= 0) {
       else if (entry.isSymbolicLink()) {
         const target = await realpath(path)
         const resolved = relative(app, target)
-        if (resolved === ".." || resolved.startsWith("../") || !relative(app, path).startsWith("Contents/Frameworks/Sparkle.framework/")) {
+        if (
+          resolved === ".." ||
+          resolved.startsWith("../") ||
+          !relative(app, path).startsWith("Contents/Frameworks/Sparkle.framework/")
+        ) {
           issues.push(`app/${relative(app, path)}: unsafe symbolic link`)
         }
-      }
-      else if ((await stat(path)).size > 0) inspect(`app/${relative(app, path)}`, await readFile(path))
-      if (/^\.env(?:\.|$)|\.(?:enc|sqlite|sqlite3|db|p12|pfx|pem|key|mobileprovision|log)$/.test(entry.name)) issues.push(`app/${relative(app, path)}: private file`)
+      } else if ((await stat(path)).size > 0) inspect(`app/${relative(app, path)}`, await readFile(path))
+      if (/^\.env(?:\.|$)|\.(?:enc|sqlite|sqlite3|db|p12|pfx|pem|key|mobileprovision|log)$/.test(entry.name))
+        issues.push(`app/${relative(app, path)}: private file`)
     }
   }
   await inspectBundle(app)
@@ -74,5 +97,7 @@ if (issues.length) {
   console.error(`Release privacy check failed:\n${issues.join("\n")}`)
   process.exitCode = 1
 } else {
-  console.log(`Release privacy check passed: ${files.length} tracked files${appIndex >= 0 ? " and app bundle" : ""}${envIndex >= 0 ? ", including comparison with saved secrets" : ""}. Values were not printed.`)
+  console.log(
+    `Release privacy check passed: ${inspectedFiles} tracked files${appIndex >= 0 ? " and app bundle" : ""}${envIndex >= 0 ? ", including comparison with saved secrets" : ""}. Values were not printed.`,
+  )
 }

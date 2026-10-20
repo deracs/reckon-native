@@ -18,7 +18,7 @@ try {
     child.stdin.on("error", reject)
     child.stdout.resume()
     child.stderr.resume()
-    child.on("close", code => resolveStatus(code))
+    child.on("close", (code) => resolveStatus(code))
     child.stdin.end(JSON.stringify({ appToken: values.AKAHU_APP_TOKEN, userToken: values.AKAHU_USER_TOKEN }))
   })
   if (status !== 0) throw new Error("Keychain import did not succeed")

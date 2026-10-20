@@ -6,7 +6,7 @@ For installation and everyday use, read the [README](../README.md). Run the comm
 
 The build requires Swift 6, the macOS Command Line Tools, PNPM 10.12.1, and Node 24. Xcode is optional.
 
-The required Reckon backend source snapshot lives in `Backend/Reckon`. No other checkout or private-repository token is needed. `Backend/Reckon/SOURCE.json` records its origin and source hashes. This snapshot includes the native app’s merchant-logo and NZD forecast fixes. Update it deliberately when you import backend changes.
+The adapted Reckon backend source lives in `Backend/Reckon`. A source build needs no other checkout or private repository token. `Backend/Reckon/SOURCE.json` records its origin and current file hashes. This copy contains only the native app domain and Akahu adapter.
 
 ```sh
 pnpm install --frozen-lockfile
@@ -40,7 +40,7 @@ The installed app also supports `--launch-at-login-status`, `--enable-launch-at-
 ## Checks
 
 ```sh
-node scripts/build-backend.mjs --check
+pnpm check
 swift run -Xswiftc -warnings-as-errors ReckonChecks
 node --test Tests/backend-integration.test.mjs Tests/software-updates.test.mjs
 ```
@@ -48,6 +48,24 @@ node --test Tests/backend-integration.test.mjs Tests/software-updates.test.mjs
 Build the app before the checks. The Swift checks exercise the bundled process. The integration checks use a local Akahu fixture and run the bundled backend from a temporary directory. They require no real credentials or bank connection.
 
 The Swift checks use an executable runner because the standalone Command Line Tools omit the Swift Testing and XCTest modules.
+
+## TypeScript tooling
+
+The backend pins Effect and `@effect/platform-node` to 4.0.5. It uses Effect HTTP modules, the Node server adapter, and the Node runtime. `FetchHttpClient` uses the Fetch API in Node without a separate Undici dependency.
+
+`pnpm check` runs TypeScript, Oxlint with the recommended Effect rules, and the Oxfmt format check. The separate commands are `pnpm typecheck`, `pnpm lint`, and `pnpm fmt:check`. Oxlint warnings and errors fail the check.
+
+`pnpm lint:fix` applies automatic lint corrections. `pnpm fmt` formats JavaScript, TypeScript, configuration, and workflow files. It includes the adapted backend source and excludes Markdown. Update the source hashes after changes to the adapted copy.
+
+The type check includes `Tests/backend-schema-types.test.ts`. This test makes sure that plain records and structurally similar classes cannot replace a decoded schema class.
+
+The project permits Effect v4 APIs that carry the unstable label. The `unstable-api-usage` lint rule is disabled. Exact dependency pins and local HTTP fixture tests cover these integration boundaries.
+
+All numeric wire amounts, numeric query parameters, and numeric domain output fields reject non-finite values. Fixture tests cover rejected `NaN`, infinities, numeric overflow, and valid signed decimal strings.
+
+`pnpm install` runs `effect-tsgo patch --oxlint`, which patches both TypeScript 7 and Oxlint's type-aware engine with `@effect/tsgo`. Their versions are pinned together because the patch supports specific compiler and linter versions. Effect diagnostics run through Oxlint; the language-service plugin retains completions, quick info, and refactors without duplicate diagnostics.
+
+The root `tsconfig.json` supplies the same module aliases and compiler settings to editors, checks, and esbuild. In VS Code-based editors, install the TypeScript 7 extension and the [Oxc extension](https://oxc.rs/docs/guide/usage/linter/editors.html), then select the workspace TypeScript version if prompted. The committed workspace settings select the patched native compiler. For other LSP clients, `pnpm exec effect-tsgo get-exe-path` prints the native server executable; launch it with `--lsp --stdio`.
 
 For UI checks with sample data:
 
@@ -101,11 +119,29 @@ Notifications have no sound and hide account names and amounts. Open Reckon to v
 
 `Sources/ReckonCore/BundledBackend.swift` owns the child process, startup protocol, private API token, cancellation, and shutdown. It passes credentials through stdin. The child watches that pipe and its parent process so it also stops after an app crash. The local API token changes on every launch and stays in memory.
 
-`Backend/backend-main.ts` wires the existing Reckon API contract, handlers, Akahu adapter, and domain calculations. It listens on `127.0.0.1` with an OS-selected port. It permits authenticated GET requests to accounts, cashflow, spending, recurring charges, freshness, transactions, forecast, and health only. Requests from browser origins, incorrect Host headers, writes, and unrelated API routes are rejected. Logs contain no bank records or credentials.
+`Backend/backend-main.ts` connects the Akahu adapter, `NodeRuntime`, and the local HTTP boundary in `Backend/native-bank-server.ts`. Effect's `NodeHttpServer` owns the listener and request scope. It listens on `127.0.0.1`. macOS selects the port.
+
+The API permits authenticated GET requests to seven bank routes and `/health`. It rejects browser origins, incorrect Host headers, writes, and unrelated routes. Effect schemas decode queries and encode responses. Logs contain no bank records or credentials.
+
+`akahu-http-client.ts` uses Effect `HttpClient` for authenticated GET requests and JSON codecs. It retries transient failures up to five times with exponential backoff and jitter. It honors `Retry-After`, rejects redirects, and limits each page read to twenty seconds. Source failures become safe `BankDataError` values and generic HTTP 502 responses.
+
+Effect `Stream.paginate` reads each source page. Effect `Cache` shares one history read across a dashboard reload. Swift sends the same `X-Reckon-Snapshot` UUID on all eight requests in that reload. The shared history starts on the first day of the month six months before the current Auckland month. Each section applies its own date range before calculations.
+
+The history cache retains at most four successful reloads for one minute. Each new reload uses a new UUID, so manual reloads read fresh transaction history immediately. The account cache retains one successful account list for five minutes. Failed reads expire immediately. Requests without a snapshot ID read history directly. Requests outside the shared date range also read their full requested range directly.
+
+A failed history read leaves account balances available. Client disconnects and app shutdown interrupt active reads and close source connections. App pipe closure, parent exit, SIGINT, and SIGTERM close the root Effect scope before process exit. The backend contains seven bank operations. It contains no database services, budgets, goals, category rules, taxonomy bundle, or unsupported write methods.
 
 `scripts/build-backend.mjs` creates one JavaScript bundle from the source snapshot in `Backend/Reckon`. `Sources/ReckonApp` owns SwiftUI, the native status item and popover lifecycle, Touch ID, and Keychain access. `ReckonAppLock` rejects authentication replies from cancelled or previous sessions. No database or TypeScript calculation port is needed.
 
-The backend typecheck retains the Reckon snapshot’s existing optional-property and array-index rules. The options `exactOptionalPropertyTypes` and `noUncheckedIndexedAccess` produce errors in imported Reckon source, such as `Akahu.ts`, `CashRunway.ts`, and `derivations.ts`. The source snapshot preserves those rules. All other configured strict checks and Effect diagnostics apply.
+The backend uses strict TypeScript checks with `exactOptionalPropertyTypes` and `noUncheckedIndexedAccess`. Oxlint also applies its recommended Effect diagnostics.
+
+## Backend performance
+
+`scripts/measure-backend.mjs` measures backend startup, dashboard HTTP response time, and backend RSS with a local synthetic fixture. The fixture contains three accounts and 3,000 transactions. It compares zero delay with a 50 ms delay per source response. Each dashboard uses a fresh snapshot UUID. The [21 October 2026 measurements](performance/backend-2026-10-21.md) describe the method and limits.
+
+```sh
+node scripts/measure-backend.mjs --runs 20 --output .build/backend-performance.json
+```
 
 ## GitHub builds and releases
 

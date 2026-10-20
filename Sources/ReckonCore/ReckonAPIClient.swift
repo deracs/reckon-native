@@ -72,32 +72,33 @@ public struct ReckonAPIClient: Sendable {
 
     public func fetchDashboard(now: Date = .now) async throws -> BankDashboard {
         let window = BankDateWindow(now: now)
+        let snapshotID = UUID().uuidString
         let currentQuery = window.query(from: window.monthStart, to: window.today) + [URLQueryItem(name: "excludeTransfers", value: "true")]
         let previousQuery = window.query(from: window.previousThreeMonthsStart, to: window.previousMonthEnd) + [URLQueryItem(name: "excludeTransfers", value: "true")]
         let recurringQuery = window.query(from: window.recurringStart, to: window.today)
 
-        async let accounts: [BankAccount] = get("accounts")
-        async let cashflow: BankSection<[MonthlyCashflow]> = section("cashflow", query: currentQuery)
-        async let spending: BankSection<[CategorySpending]> = section("spending", query: currentQuery)
-        async let previousSpending: BankSection<[CategorySpending]> = section("spending", query: previousQuery)
-        async let standingOrders: BankSection<[StandingOrder]> = section("recurring", query: recurringQuery)
-        async let freshness: BankSection<[AccountFreshness]> = section("freshness")
+        async let accounts: [BankAccount] = get("accounts", snapshotID: snapshotID)
+        async let cashflow: BankSection<[MonthlyCashflow]> = section("cashflow", query: currentQuery, snapshotID: snapshotID)
+        async let spending: BankSection<[CategorySpending]> = section("spending", query: currentQuery, snapshotID: snapshotID)
+        async let previousSpending: BankSection<[CategorySpending]> = section("spending", query: previousQuery, snapshotID: snapshotID)
+        async let standingOrders: BankSection<[StandingOrder]> = section("recurring", query: recurringQuery, snapshotID: snapshotID)
+        async let freshness: BankSection<[AccountFreshness]> = section("freshness", snapshotID: snapshotID)
         async let transactions: BankSection<[BankTransaction]> = section("transactions", query:
-            recurringQuery + [URLQueryItem(name: "limit", value: "100"), URLQueryItem(name: "excludeTransfers", value: "true")])
+            recurringQuery + [URLQueryItem(name: "limit", value: "100"), URLQueryItem(name: "excludeTransfers", value: "true")], snapshotID: snapshotID)
         async let forecast: BankSection<BankForecast> = section("forecast", query:
-            [URLQueryItem(name: "days", value: "30"), URLQueryItem(name: "excludeTransfers", value: "true")])
+            [URLQueryItem(name: "days", value: "30"), URLQueryItem(name: "excludeTransfers", value: "true")], snapshotID: snapshotID)
 
         return try await BankDashboard(accounts: accounts, cashflow: cashflow, spending: spending,
                                        previousSpending: previousSpending, standingOrders: standingOrders,
                                        freshness: freshness, window: window, fetchedAt: now, transactions: transactions, forecast: forecast)
     }
 
-    private func section<Value: Decodable & Sendable>(_ path: String, query: [URLQueryItem] = []) async -> BankSection<Value> {
-        do { return .loaded(try await get(path, query: query)) }
+    private func section<Value: Decodable & Sendable>(_ path: String, query: [URLQueryItem] = [], snapshotID: String) async -> BankSection<Value> {
+        do { return .loaded(try await get(path, query: query, snapshotID: snapshotID)) }
         catch { return .failed(error.localizedDescription) }
     }
 
-    private func get<Value: Decodable & Sendable>(_ path: String, query: [URLQueryItem] = []) async throws -> Value {
+    private func get<Value: Decodable & Sendable>(_ path: String, query: [URLQueryItem] = [], snapshotID: String) async throws -> Value {
         let url = connection.baseURL.appendingPathComponent(path)
         guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { throw ReckonAPIError.invalidURL }
         if !query.isEmpty { components.queryItems = query }
@@ -105,6 +106,7 @@ public struct ReckonAPIClient: Sendable {
         var request = URLRequest(url: requestURL, cachePolicy: .reloadIgnoringLocalCacheData)
         request.setValue("Bearer \(connection.token)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue(snapshotID, forHTTPHeaderField: "X-Reckon-Snapshot")
         let data: Data
         let response: URLResponse
         do { (data, response) = try await session.data(for: request) }

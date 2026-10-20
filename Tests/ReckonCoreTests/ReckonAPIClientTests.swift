@@ -52,13 +52,17 @@ struct ReckonAPIClientTests: Sendable {
     func requestsCorrectRESTEndpointsWithBearerAndNZDateWindows() async throws {
         BankFixtureProtocol.log.reset()
         let now = try bankRequire(ISO8601DateFormatter().date(from: "2026-10-20T01:00:00Z"))
-        let dashboard = try await client().fetchDashboard(now: now)
+        let apiClient = try client()
+        let dashboard = try await apiClient.fetchDashboard(now: now)
         try bankExpect(dashboard.liquidBalance == Decimal(string: "123.45"))
         try bankExpect(dashboard.currentCashflow?.net.value == Decimal(string: "2999.75"))
         try bankExpect(dashboard.transactions.value?.first?.logoURL?.host == "cdn.akahu.nz")
         try bankExpect(dashboard.forecast.value?.startingBalance.value == Decimal(string: "123.45"))
         let requests = BankFixtureProtocol.log.snapshot()
         try bankExpect(requests.count == 8)
+        let snapshotIDs = Set(requests.compactMap { $0.value(forHTTPHeaderField: "X-Reckon-Snapshot") })
+        try bankExpect(snapshotIDs.count == 1)
+        try bankExpect(snapshotIDs.first.flatMap(UUID.init(uuidString:)) != nil)
         for request in requests {
             try bankExpect(request.httpMethod == "GET")
             try bankExpect(request.value(forHTTPHeaderField: "Authorization") == "Bearer rest-test-token")
@@ -81,6 +85,13 @@ struct ReckonAPIClientTests: Sendable {
         let recurring = try bankRequire(requests.first { $0.url?.lastPathComponent == "recurring" }?.url)
         let recurringQuery = URLComponents(url: recurring, resolvingAgainstBaseURL: false)?.queryItems
         try bankExpect(recurringQuery?.contains(URLQueryItem(name: "from", value: "2026-04-20")) == true)
+
+        BankFixtureProtocol.log.reset()
+        _ = try await apiClient.fetchDashboard(now: now)
+        let nextRequests = BankFixtureProtocol.log.snapshot()
+        try bankExpect(nextRequests.count == 8)
+        let nextSnapshotIDs = Set(nextRequests.compactMap { $0.value(forHTTPHeaderField: "X-Reckon-Snapshot") })
+        try bankExpect(nextSnapshotIDs.count == 1 && nextSnapshotIDs != snapshotIDs)
     }
 
     func failedSummaryPreservesLiquidBalanceAndOtherStats() async throws {

@@ -1,32 +1,37 @@
 {
   "name": "reckon-native",
-  "private": true,
   "version": "0.7.2",
+  "private": true,
   "type": "module",
-  "packageManager": "pnpm@10.12.1",
   "scripts": {
-    "check": "node scripts/build-backend.mjs --check",
+    "check": "pnpm typecheck && pnpm lint && pnpm fmt:check",
+    "typecheck": "tsc --project tsconfig.json",
+    "lint": "oxlint --deny-warnings .",
+    "lint:fix": "oxlint --fix .",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
     "build": "./scripts/build-app.sh",
     "check:privacy": "node scripts/check-release-privacy.mjs",
-    "prepare": "effect-tsgo patch"
+    "prepare": "effect-tsgo patch --oxlint"
   },
   "dependencies": {
-    "effect": "4.0.0-rc.117",
-    "@effect/platform-node": "4.0.0-rc.117"
+    "@effect/platform-node": "4.0.5",
+    "effect": "4.0.5"
   },
   "devDependencies": {
+    "@effect/tsgo": "0.55.0",
     "@types/node": "25.3.0",
     "esbuild": "0.25.12",
-    "typescript": "7.0.2",
-    "@effect/tsgo": "0.38.0"
+    "oxfmt": "0.74.0",
+    "oxlint": "1.89.0",
+    "oxlint-tsgolint": "7.0.2004",
+    "typescript": "7.0.2"
   },
+  "packageManager": "pnpm@10.12.1",
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild",
       "@effect/tsgo"
-    ],
-    "overrides": {
-      "@effect/platform-node-shared": "4.0.0-rc.117"
-    }
+    ]
   }
 }

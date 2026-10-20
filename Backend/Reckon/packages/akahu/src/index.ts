@@ -1,2 +1,1 @@
-export * from "./Akahu.js"
-export * from "./BankSync.js"
+export { AkahuBankDataLayer } from "./Akahu.js"
