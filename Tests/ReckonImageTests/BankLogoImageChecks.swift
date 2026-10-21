@@ -139,10 +139,10 @@ private final class LogoFixtureProtocol: URLProtocol, @unchecked Sendable {
 
         LogoFixtureProtocol.state.reset(images: ["red": red])
         let sharedCache = fixtureCache()
-        let readers = (0..<10).map { _ in Task { @MainActor in await sharedCache.loadLogo(for: redURL) } }
+        let readers = (0..<10).map { _ in Task { @MainActor in await sharedCache.loadLogo(for: redURL) != nil } }
         for reader in readers {
-            let image = await reader.value
-            try expectLogo(image != nil, "A concurrent logo reader failed.")
+            let loaded = await reader.value
+            try expectLogo(loaded, "A concurrent logo reader failed.")
         }
         try expectLogo(LogoFixtureProtocol.state.requests.count == 1, "Concurrent rows duplicated the same image request.")
         print("PASS Ten concurrent rows share one image request")
