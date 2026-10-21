@@ -1,13 +1,12 @@
 A standalone macOS menu bar app for your Akahu accounts. Requires macOS 15 or later and a Mac login password. Unlock with Touch ID, Apple Watch, or your Mac login password.
 
-Reckon now uses a standalone Rust backend. The app no longer bundles Node or a TypeScript backend.
+Source builds, tests, and releases now use Rust tools. Node and PNPM are no longer required.
 
-- Bank and transaction logos stay in a shared memory cache. Cached logos appear immediately when you change tabs.
-- The backend exits after each refresh. Swift keeps the displayed dashboard available between refreshes.
-- Dashboard sections share one transaction-history fetch per account and source page.
-- The menu bar icon shows a lock badge while Reckon is locked.
+- Rust replaces the JavaScript build, benchmark, credential import, privacy, and release tools.
+- Rust replaces the integration tests and the backend fixtures for Swift checks.
+- Rustfmt and Clippy check both Rust packages. Cargo lockfiles pin their dependencies.
 
-In five live Akahu trials per backend, median refresh time fell from 13.12 seconds to 10.80 seconds. Loaded backend RSS fell from 84.7 MiB to 13.7 MiB. All dashboard sections matched. These measurements cover the backend process, not the full app. See the [measurement details](https://github.com/deracs/reckon-native/blob/v0.7.7/docs/performance/live-akahu-backend-2026-10-22.md).
+The app includes the Rust backend and shared bank and transaction logo cache from v0.7.7. Cached logos appear immediately when you change tabs.
 
 Authentication uses the same macOS policy as v0.7.5. Password fallback works without Touch ID. For Apple Watch approval, enable your watch in System Settings → Touch ID & Password (or Login Password). See [Apple’s setup requirements](https://support.apple.com/en-us/102442).
 
