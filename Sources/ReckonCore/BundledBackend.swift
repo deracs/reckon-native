@@ -56,7 +56,7 @@ private final class BackendChild {
     init(apiToken: String) { self.apiToken = apiToken }
 }
 
-/// Owns a bundled Node child and its authenticated loopback API; dashboard refreshes scope its lifetime.
+/// Owns a bundled Rust child and its authenticated loopback API; dashboard refreshes scope its lifetime.
 @MainActor
 public final class BundledBackend {
     public var onUnexpectedExit: ((BundledBackendError) -> Void)?

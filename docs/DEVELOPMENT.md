@@ -4,12 +4,11 @@ For installation and everyday use, read the [README](../README.md). Run the comm
 
 ## Build from source
 
-The build requires Swift 6, Rust 1.98.1, the macOS Command Line Tools, PNPM 10.12.1, and Node 24. Xcode is optional.
+The build requires Swift 6, Rust 1.98.1, and the macOS Command Line Tools. Xcode is optional. Node and PNPM are not required.
 
-Reckon uses Rust for the backend and Swift for the interface. `Backend/src` contains the backend source. `Backend/Cargo.lock` pins its dependencies. Node runs development and release scripts only. The app bundle contains no Node runtime or TypeScript backend.
+Reckon uses Rust for the backend and Swift for the interface. `Backend/src` contains the backend source. `Backend/Cargo.lock` pins its dependencies. `Tools/src` contains the Rust development and release tools. `Tools/Cargo.lock` pins their dependencies. The app bundle contains only the Swift interface and Rust backend.
 
 ```sh
-pnpm install --frozen-lockfile
 ./scripts/build-app.sh
 open dist/Reckon.app
 ```
@@ -23,7 +22,7 @@ The completed app has no dependency on source directories or build tools. Person
 To import tokens from an existing Reckon `.env` after a build:
 
 ```sh
-node scripts/import-akahu-env.mjs /path/to/reckon/.env /Applications/Reckon.app
+cargo reckon import-akahu /path/to/reckon/.env /Applications/Reckon.app
 ```
 
 The importer passes only the two Akahu tokens to the signed app over stdin. The app saves them in its own Keychain entry. It does not copy the `.env` into the app or print token values. Reopen Reckon after the import.
@@ -37,10 +36,10 @@ The installed app also supports `--launch-at-login-status`, `--enable-launch-at-
 ## Checks
 
 ```sh
-pnpm check
+cargo reckon check
 swift run -Xswiftc -warnings-as-errors ReckonChecks
 swift run -Xswiftc -warnings-as-errors ReckonImageChecks
-pnpm test
+cargo reckon test
 ```
 
 Build the app before the checks. The Swift checks exercise the bundled process. The integration checks use a local Akahu fixture and run the bundled backend from a temporary directory. They require no real credentials or bank connection.
@@ -49,7 +48,9 @@ The Swift checks use an executable runner because the standalone Command Line To
 
 ## Backend checks and tools
 
-`pnpm check` runs Rustfmt, Clippy with warnings as errors, Oxlint, and Oxfmt. `pnpm test` runs Rust calculation checks and the HTTP integration suite. `pnpm fmt` formats Rust and development scripts.
+`cargo reckon check` runs Rustfmt and Clippy with warnings as errors for the backend and tools. `cargo reckon test` runs Rust calculation checks, HTTP integration checks, privacy checks, and update-signature checks. `cargo reckon fmt` formats both Rust packages.
+
+The `cargo reckon` alias selects the `reckon-tools` package. The build also compiles a Rust backend fixture for the Swift lifecycle checks. It stays outside the app bundle. The shell scripts use standard macOS tools for icons, app bundles, and code signatures.
 
 The integration suite uses fictional data on loopback. It checks all seven bank operations, authentication, source errors, retries, pagination, cancellation, and shared dashboard reads. Rust checks cover decimal arithmetic, transfer detection, recurring charges, and calendar boundaries. Generated date windows cover all four projection cadences.
 
@@ -153,29 +154,31 @@ The caches disappear after each native refresh.
 
 ## Backend performance
 
-`scripts/measure-backend.mjs` measures backend startup, dashboard response time, and process RSS with three fictional accounts and 3,000 transactions. Each scenario uses 20 fresh processes. Source responses have either zero delay or a 50 ms delay. Each dashboard uses a fresh snapshot UUID.
+`cargo reckon measure-backend` measures backend startup, dashboard response time, and process RSS with three fictional accounts and 3,000 transactions. Each scenario uses 20 fresh processes. Source responses have either zero delay or a 50 ms delay. Each dashboard uses a fresh snapshot UUID.
 
 ```sh
-node scripts/measure-backend.mjs --runs 20 --output .build/rust-backend-performance.json
+cargo reckon measure-backend --runs 20 --output .build/rust-backend-performance.json
 ```
 
 For the original TypeScript version, retain a baseline bundle and select it explicitly:
 
 ```sh
-node scripts/measure-backend.mjs --implementation typescript --bundle .build/typescript-baseline --runs 20 --output .build/typescript-backend-performance.json
-RECKON_BASELINE_BUNDLE="$PWD/.build/typescript-baseline" node --test Tests/backend-integration.test.mjs
+cargo reckon measure-backend --implementation typescript --bundle .build/typescript-baseline --runs 20 --output .build/typescript-backend-performance.json
+RECKON_BASELINE_BUNDLE="$PWD/.build/typescript-baseline" cargo test --manifest-path Tools/Cargo.toml --locked --test backend_integration optional_historical -- --ignored
 ```
 
-The optional baseline check compares JSON responses from both implementations against the same fixture. A baseline bundle needs `Contents/Helpers/node` and `Contents/Resources/Backend/backend.cjs`. The baseline process uses the original `--max-semi-space-size=2` setting.
+The optional baseline check compares JSON responses from both implementations against the same fixture. A baseline bundle needs `Contents/Helpers/node` and `Contents/Resources/Backend/backend.cjs`. The baseline process uses the original `--max-semi-space-size=2` setting. Only this optional historical comparison needs Node, supplied by that saved bundle. Normal builds, checks, tests, and releases use no Node or PNPM.
 
-`startupAndDashboardMs` covers the production refresh lifecycle. RSS samples cover the backend process after its first dashboard. These measurements exclude Swift, Keychain, interface work, peak memory, and live Akahu latency. The warm reload metric permits comparison with earlier measurements. It does not represent the current app lifecycle.
+`startupAndDashboardMs` covers the production refresh lifecycle. RSS samples cover the backend process after its first dashboard. These measurements exclude Swift, Keychain, interface work, peak memory, and live Akahu latency.
+
+The Rust harness preserves the workload and report metrics. Older reports used a Node harness. Harness and HTTP-client differences can affect timings. The warm reload metric permits comparison with earlier measurements. It does not represent the current app lifecycle.
 
 See the [Rust comparison](performance/rust-backend-2026-10-22.md) for results and limits. The older reports retain their original TypeScript measurements.
 
 For a read-only comparison with the saved Akahu connection, use:
 
 ```sh
-node scripts/compare-live-backends.mjs --runs 5 --replay-runs 20
+cargo reckon compare-live --runs 5 --replay-runs 20
 ```
 
 This command compares direct live requests, then replays one real-data snapshot held only in memory. It reads credentials from Keychain and keeps all bank records out of its output. The default report path is `.build/live-backend-comparison.json`. See the [real Akahu comparison](performance/live-akahu-backend-2026-10-22.md) for results and limits.
@@ -187,7 +190,7 @@ The public repository is [deracs/reckon-native](https://github.com/deracs/reckon
 A version tag such as `vX.Y.Z` creates a GitHub release after both builds and their checks pass. The release job signs and publishes the architecture-specific Sparkle feeds in `updates/` on `main`. Replace `X.Y.Z` with the version from `CFBundleShortVersionString` in `Resources/Info.plist`. Increment `CFBundleVersion` for each release.
 
 ```sh
-git tag vX.Y.Z
+git tag -a vX.Y.Z -m "Reckon vX.Y.Z"
 git push origin vX.Y.Z
 ```
 
@@ -215,13 +218,13 @@ Update feeds use GitHub’s raw-file host because Sparkle requests RSS, and the 
 
 ## Privacy before publication
 
-The repository starts with fresh history and synthetic fixtures. `.env`, Keychain entries, local history, build caches, Node dependencies, app bundles, logs, archives, and signing credentials are excluded from Git. Commits use a GitHub noreply email rather than a personal address.
+The repository starts with fresh history and synthetic fixtures. `.env`, Keychain entries, local history, build caches, app bundles, logs, archives, and signing credentials are excluded from Git. Commits use a GitHub noreply email rather than a personal address.
 
 Run the privacy check before a push or a build upload:
 
 ```sh
-node scripts/check-release-privacy.mjs --app dist/Reckon.app
-node scripts/check-release-privacy.mjs --env-file /path/to/reckon/.env --app dist/Reckon.app
+cargo reckon privacy --app dist/Reckon.app
+cargo reckon privacy --env-file /path/to/reckon/.env --app dist/Reckon.app
 ```
 
 The optional second command compares tracked files and the app directly against saved secret values without disclosure of those values. Checks also reject credential patterns, live Akahu account or transaction IDs, personal home paths, and private or generated file types. CI runs these checks before upload. No real `.env` enters CI. Enable the local pre-commit check with `git config core.hooksPath .githooks` after you clone the repository.

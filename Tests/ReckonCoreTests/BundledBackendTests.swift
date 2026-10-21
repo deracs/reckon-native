@@ -58,44 +58,22 @@ struct BundledBackendTests: Sendable {
         }
     }
 
-    @MainActor private func fakeBundle(script: String) throws -> URL {
+    @MainActor private func fakeBundle(mode: String, accountStatus: Int = 200, holdResponses: Bool = false) throws -> URL {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("reckon-check-\(UUID())")
         let helpers = folder.appendingPathComponent("Contents/Helpers")
         let resources = folder.appendingPathComponent("Contents/Resources/Backend")
         try FileManager.default.createDirectory(at: helpers, withIntermediateDirectories: true)
         try FileManager.default.createDirectory(at: resources, withIntermediateDirectories: true)
-        // Node is test tooling only: the fake process exercises Swift lifecycle failures.
-        let node = URL(fileURLWithPath: "/usr/bin/env")
-        let executable = helpers.appendingPathComponent("reckon-backend")
-        let fixture = resources.appendingPathComponent("backend.cjs")
-        let searchPaths = (ProcessInfo.processInfo.environment["PATH"] ?? "").split(separator: ":")
-        let nodePath = try bankRequire(ProcessInfo.processInfo.environment["RECKON_TEST_NODE"] ?? searchPaths
-            .map { "\($0)/node" }.first { FileManager.default.isExecutableFile(atPath: $0) })
-        try ("#!/bin/sh\nexec \"\(node.path)\" \"\(nodePath)\" \"\(fixture.path)\"\n").write(to: executable, atomically: true, encoding: .utf8)
-        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: executable.path)
-        try script.write(to: fixture, atomically: true, encoding: .utf8)
+        let project = appBundle.deletingLastPathComponent().deletingLastPathComponent()
+        let fixture = project.appendingPathComponent(".build/rust/debug/reckon-backend-fixture")
+        try FileManager.default.copyItem(at: fixture, to: helpers.appendingPathComponent("reckon-backend"))
+        let configuration: [String: Any] = ["mode": mode, "accountStatus": accountStatus, "holdResponses": holdResponses]
+        try JSONSerialization.data(withJSONObject: configuration).write(to: resources.appendingPathComponent("fixture.json"))
         return folder
     }
 
     @MainActor private func dashboardBundle(accountStatus: Int = 200, holdResponses: Bool = false) throws -> URL {
-        try fakeBundle(script: """
-        const http = require('node:http')
-        const fs = require('node:fs')
-        const path = require('node:path')
-        const server = http.createServer((request, response) => {
-            if (\(holdResponses)) return
-            const endpoint = new URL(request.url, 'http://localhost').pathname
-            const status = endpoint === '/accounts' ? \(accountStatus) : 200
-            const body = endpoint === '/forecast'
-                ? {startDate:'2026-10-20',endDate:'2026-11-19',startingBalance:'0',endingBalance:'0',points:[],events:[],risks:[]}
-                : []
-            response.writeHead(status, {'content-type':'application/json'}).end(JSON.stringify(body))
-        })
-        process.stdin.once('data', () => server.listen(0, '127.0.0.1', () => {
-            fs.writeFileSync(path.join(__dirname, 'child.pid'), String(process.pid))
-            process.stdout.write(JSON.stringify({event:'ready',port:server.address().port})+'\\n')
-        }))
-        """)
+        try fakeBundle(mode: "dashboard", accountStatus: accountStatus, holdResponses: holdResponses)
     }
 
     @MainActor private func childPID(in folder: URL) async throws -> Int32 {
@@ -148,7 +126,7 @@ struct BundledBackendTests: Sendable {
     }
 
     @MainActor func malformedStartupResponseStopsTheChild() async throws {
-        let folder = try fakeBundle(script: "process.stdout.write('unexpected output\\n'); setInterval(() => {}, 1000)")
+        let folder = try fakeBundle(mode: "malformed")
         defer { try? FileManager.default.removeItem(at: folder) }
         let backend = BundledBackend(bundleURL: folder)
         defer { backend.stop() }
@@ -161,7 +139,7 @@ struct BundledBackendTests: Sendable {
     }
 
     @MainActor func cancellingStartupStopsTheChild() async throws {
-        let folder = try fakeBundle(script: "process.stdin.resume(); setInterval(() => {}, 1000)")
+        let folder = try fakeBundle(mode: "cancelled")
         defer { try? FileManager.default.removeItem(at: folder) }
         let backend = BundledBackend(bundleURL: folder)
         defer { backend.stop() }
@@ -177,7 +155,7 @@ struct BundledBackendTests: Sendable {
     }
 
     @MainActor func unexpectedExitNotifiesTheAppAndAllowsRestart() async throws {
-        let folder = try fakeBundle(script: "process.stdout.write(JSON.stringify({event:'ready',port:12345})+'\\n'); setTimeout(() => process.exit(1), 100)")
+        let folder = try fakeBundle(mode: "unexpected-exit")
         defer { try? FileManager.default.removeItem(at: folder) }
         let backend = BundledBackend(bundleURL: folder)
         defer { backend.stop() }

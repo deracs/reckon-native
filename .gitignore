@@ -18,3 +18,5 @@ dist/
 *.zip
 *.dmg
 Backend/target/
+Tools/target/
+/release/

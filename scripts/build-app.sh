@@ -8,7 +8,7 @@ if [[ "$configuration" != "release" && "$configuration" != "debug" ]]; then
     exit 1
 fi
 "$project_dir/scripts/build-icon.sh"
-node "$project_dir/scripts/build-backend.mjs"
+cargo reckon build-backend
 # Clang module-cache breadcrumbs point to unavailable .pcm files after path remapping.
 swift build -c "$configuration" --product Reckon -Xswiftc -warnings-as-errors -Xswiftc -Xfrontend -Xswiftc -no-clang-module-breadcrumbs -Xswiftc -debug-prefix-map -Xswiftc "$project_dir=/reckon-native"
 binary_dir="$(swift build -c "$configuration" --show-bin-path)"

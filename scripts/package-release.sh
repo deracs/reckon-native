@@ -8,12 +8,12 @@ if [[ "${GITHUB_REF_TYPE:-}" == "tag" && "${GITHUB_REF_NAME:-}" != "v$version" ]
   echo "Release tag must match the app's CFBundleShortVersionString." >&2; exit 1
 fi
 codesign --verify --deep --strict "$app_dir"
-node scripts/check-release-privacy.mjs --app "$app_dir"
+cargo reckon privacy --app "$app_dir"
 mkdir -p dist/release
 archive="Reckon-${version}-macOS-$(uname -m).zip"
 ditto -c -k --keepParent --sequesterRsrc "$app_dir" "dist/release/$archive"
 (cd dist/release && shasum -a 256 "$archive" > "$archive.sha256")
 if [[ -n "${SPARKLE_PRIVATE_KEY:-}" || -z "${CI:-}" || "${GITHUB_EVENT_NAME:-}" != "pull_request" ]]; then
-  node scripts/sign-release-update.mjs "dist/release/$archive"
+  cargo reckon sign-update "dist/release/$archive"
 fi
 echo "Packaged dist/release/$archive"

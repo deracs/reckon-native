@@ -1,2 +1,5 @@
 [build]
 target-dir = ".build/rust"
+
+[alias]
+reckon = "run --locked --manifest-path Tools/Cargo.toml --"

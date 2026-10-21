@@ -28,19 +28,12 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        with:
-          node-version: "24.21.0"
-          cache: pnpm
-      - name: Install pinned development tools
-        run: pnpm install --frozen-lockfile
-      - name: Check source privacy
-        run: pnpm check:privacy
       - name: Install Rust toolchain
         run: rustup toolchain install stable --profile minimal --component clippy --component rustfmt
-      - name: Check Rust, scripts and formatting
-        run: pnpm check
+      - name: Check source privacy
+        run: cargo reckon privacy
+      - name: Check Rust and formatting
+        run: cargo reckon check
       - name: Build app
         run: ./scripts/build-app.sh
       - name: Swift checks
@@ -48,7 +41,7 @@ jobs:
           swift run -Xswiftc -warnings-as-errors ReckonChecks
           swift run -Xswiftc -warnings-as-errors ReckonImageChecks
       - name: Backend and update-signature checks with synthetic data
-        run: pnpm test
+        run: cargo reckon test
       - name: Verify, sign and package app
         env:
           SPARKLE_PRIVATE_KEY: ${{ github.event_name != 'pull_request' && secrets.SPARKLE_PRIVATE_KEY || '' }}
@@ -76,9 +69,8 @@ jobs:
           pattern: Reckon-macOS-*
           path: release
           merge-multiple: true
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        with:
-          node-version: "24.21.0"
+      - name: Install Rust toolchain
+        run: rustup toolchain install stable --profile minimal
       - name: Resolve pinned Sparkle signing tools
         run: swift package resolve
       - name: Create draft release with both Mac architectures
@@ -92,4 +84,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
           RELEASE_TAG: ${{ github.ref_name }}
-        run: node scripts/publish-update-feeds.mjs "$RELEASE_TAG" --publish
+        run: cargo reckon publish-feeds "$RELEASE_TAG" --publish
