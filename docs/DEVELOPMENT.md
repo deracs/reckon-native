@@ -6,7 +6,7 @@ For installation and everyday use, read the [README](../README.md). Run the comm
 
 The build requires Swift 6, Rust 1.98.1, the macOS Command Line Tools, PNPM 10.12.1, and Node 24. Xcode is optional.
 
-This experiment branch uses Rust for the backend and Swift for the interface. `Backend/src` contains the backend source. `Backend/Cargo.lock` pins its dependencies. Node runs development and release scripts only. The app bundle contains no Node runtime or TypeScript backend.
+Reckon uses Rust for the backend and Swift for the interface. `Backend/src` contains the backend source. `Backend/Cargo.lock` pins its dependencies. Node runs development and release scripts only. The app bundle contains no Node runtime or TypeScript backend.
 
 ```sh
 pnpm install --frozen-lockfile
