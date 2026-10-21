@@ -214,7 +214,7 @@ final class ReckonApplicationDelegate: NSObject, NSApplicationDelegate, NSWindow
     private func updateStatusItem() {
         let unlocked = appLock.isUnlocked
         statusItem.button?.title = ""
-        statusItem.button?.image = NSImage(systemSymbolName: "chart.bar.xaxis", accessibilityDescription: nil)
+        statusItem.button?.image = unlocked ? ReckonStatusIcon.unlocked : ReckonStatusIcon.locked
         statusItem.button?.setAccessibilityLabel(unlocked ? "Reckon. Liquid balance \(store.menuBarTitle)" : "Reckon. Locked. Unlock Reckon")
     }
 }
