@@ -1,0 +1,706 @@
+{
+  "measuredAt": "2026-10-21T19:57:56.418Z",
+  "environment": {
+    "cpu": "Apple M3 Pro",
+    "architecture": "arm64",
+    "platform": "darwin",
+    "kernel": "25.5.0",
+    "implementation": "typescript",
+    "toolchain": "v24.21.0",
+    "runtimeArguments": [
+      "--max-semi-space-size=2",
+      "<backend.cjs>"
+    ],
+    "bundleBytes": 979700,
+    "bundleSha256": "e766630c3ae9392198b41b283e558c7ba687d22e34788bc8eb0bb02a246c6575"
+  },
+  "workload": {
+    "accounts": 3,
+    "postedTransactions": 3000,
+    "pageSize": 500,
+    "dashboardRequests": 8,
+    "from": "2026-04-01",
+    "to": "2026-10-22"
+  },
+  "method": {
+    "startup": "Fresh process spawn through ready stdout handshake; OS caches are not flushed. No source requests occur before readiness.",
+    "dashboard": "Eight concurrent authenticated requests through JSON decoding in this Node harness. Each load uses a new snapshot UUID. Excludes Swift decoding, UI rendering, Keychain, and live Akahu.",
+    "lifecycle": "The native app starts a backend for each refresh and stops it afterward. startupAndDashboardMs sums the two timed phases, excluding RSS sampling. freshReloadMs is a supplemental warm-process comparison, not the production refresh lifecycle.",
+    "memory": "Backend process RSS from ps, in MiB, sampled outside the timed intervals. Shared pages count toward RSS. This is not peak memory or the full Swift app footprint.",
+    "latency": "Local fixture has 0 or 50 ms delay per upstream response. This simulates latency; it does not predict live Akahu performance."
+  },
+  "scenarios": [
+    {
+      "latencyMs": 0,
+      "runs": 20,
+      "summary": {
+        "startupMs": {
+          "median": 83.8459375000001,
+          "p95": 171.69529200000002,
+          "min": 74.56483299999996,
+          "max": 181.0567920000003
+        },
+        "firstDashboardMs": {
+          "median": 76.1545210000001,
+          "p95": 120.10874999999987,
+          "min": 65.8838330000001,
+          "max": 124.297125
+        },
+        "startupAndDashboardMs": {
+          "median": 161.34652099999988,
+          "p95": 285.8724159999997,
+          "min": 141.30487399999993,
+          "max": 295.99241700000005
+        },
+        "freshReloadMs": {
+          "median": 43.36964550000016,
+          "p95": 61.943624999999884,
+          "min": 33.87712499999998,
+          "max": 217.91725000000042
+        },
+        "startupRssMiB": {
+          "median": 76.984375,
+          "p95": 77.171875,
+          "min": 76.71875,
+          "max": 77.421875
+        },
+        "loadedRssMiB": {
+          "median": 98.9609375,
+          "p95": 99.46875,
+          "min": 98.671875,
+          "max": 99.625
+        },
+        "reloadRssMiB": {
+          "median": 101.2109375,
+          "p95": 102.5625,
+          "min": 81,
+          "max": 105.015625
+        },
+        "firstLoadUpstreamRequests": [
+          10
+        ],
+        "reloadUpstreamRequests": [
+          9
+        ]
+      },
+      "samples": [
+        {
+          "startupMs": 171.69529200000002,
+          "startupRssMiB": 76.984375,
+          "firstLoad": {
+            "elapsedMs": 124.297125,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 99.625,
+          "reload": {
+            "elapsedMs": 43.22362500000003,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 105.015625
+        },
+        {
+          "startupMs": 74.56483299999996,
+          "startupRssMiB": 76.875,
+          "firstLoad": {
+            "elapsedMs": 73.7595,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 99.140625,
+          "reload": {
+            "elapsedMs": 48.60637500000007,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 100.109375
+        },
+        {
+          "startupMs": 88.7338749999999,
+          "startupRssMiB": 76.953125,
+          "firstLoad": {
+            "elapsedMs": 76.99741699999993,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 99.015625,
+          "reload": {
+            "elapsedMs": 43.653332999999975,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 99.96875
+        },
+        {
+          "startupMs": 81.84441700000002,
+          "startupRssMiB": 76.984375,
+          "firstLoad": {
+            "elapsedMs": 71.95129099999997,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 99.09375,
+          "reload": {
+            "elapsedMs": 40.999292000000196,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 102.5625
+        },
+        {
+          "startupMs": 75.81700000000001,
+          "startupRssMiB": 76.96875,
+          "firstLoad": {
+            "elapsedMs": 72.0139999999999,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.859375,
+          "reload": {
+            "elapsedMs": 47.122666999999865,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 102.03125
+        },
+        {
+          "startupMs": 79.33395799999994,
+          "startupRssMiB": 76.859375,
+          "firstLoad": {
+            "elapsedMs": 71.17395800000008,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.828125,
+          "reload": {
+            "elapsedMs": 38.83329200000003,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 102.28125
+        },
+        {
+          "startupMs": 79.45795800000019,
+          "startupRssMiB": 77.015625,
+          "firstLoad": {
+            "elapsedMs": 66.8933750000001,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.90625,
+          "reload": {
+            "elapsedMs": 35.575833999999986,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 99.859375
+        },
+        {
+          "startupMs": 76.52941699999997,
+          "startupRssMiB": 77.046875,
+          "firstLoad": {
+            "elapsedMs": 65.8838330000001,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 99.234375,
+          "reload": {
+            "elapsedMs": 33.87712499999998,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 100.09375
+        },
+        {
+          "startupMs": 118.88154200000008,
+          "startupRssMiB": 77.421875,
+          "firstLoad": {
+            "elapsedMs": 99.15266699999984,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.796875,
+          "reload": {
+            "elapsedMs": 34.789041,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 100.453125
+        },
+        {
+          "startupMs": 75.24629099999993,
+          "startupRssMiB": 76.71875,
+          "firstLoad": {
+            "elapsedMs": 66.058583,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.671875,
+          "reload": {
+            "elapsedMs": 48.56258400000024,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 102.203125
+        },
+        {
+          "startupMs": 76.77404200000001,
+          "startupRssMiB": 76.875,
+          "firstLoad": {
+            "elapsedMs": 68.34962499999983,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.734375,
+          "reload": {
+            "elapsedMs": 38.69562500000029,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 102.078125
+        },
+        {
+          "startupMs": 133.30954100000008,
+          "startupRssMiB": 76.8125,
+          "firstLoad": {
+            "elapsedMs": 104.24091700000008,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.765625,
+          "reload": {
+            "elapsedMs": 41.64929200000006,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 101.96875
+        },
+        {
+          "startupMs": 81.65012499999966,
+          "startupRssMiB": 77.046875,
+          "firstLoad": {
+            "elapsedMs": 75.31162500000028,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 99,
+          "reload": {
+            "elapsedMs": 37.11466599999994,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 100.015625
+        },
+        {
+          "startupMs": 77.54283399999986,
+          "startupRssMiB": 76.78125,
+          "firstLoad": {
+            "elapsedMs": 70.50708399999985,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.71875,
+          "reload": {
+            "elapsedMs": 43.27033299999994,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 101.765625
+        },
+        {
+          "startupMs": 165.76366599999983,
+          "startupRssMiB": 77.109375,
+          "firstLoad": {
+            "elapsedMs": 120.10874999999987,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.921875,
+          "reload": {
+            "elapsedMs": 217.91725000000042,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 81
+        },
+        {
+          "startupMs": 181.0567920000003,
+          "startupRssMiB": 76.984375,
+          "firstLoad": {
+            "elapsedMs": 93.2627080000002,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 99.203125,
+          "reload": {
+            "elapsedMs": 48.153832999999395,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 100.140625
+        },
+        {
+          "startupMs": 85.84745800000019,
+          "startupRssMiB": 77,
+          "firstLoad": {
+            "elapsedMs": 91.89966699999968,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 99.03125,
+          "reload": {
+            "elapsedMs": 48.28204200000073,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 99.90625
+        },
+        {
+          "startupMs": 87.92058300000008,
+          "startupRssMiB": 76.953125,
+          "firstLoad": {
+            "elapsedMs": 82.29125000000022,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.6875,
+          "reload": {
+            "elapsedMs": 45.811916999999994,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 102.234375
+        },
+        {
+          "startupMs": 90.55091699999957,
+          "startupRssMiB": 77.015625,
+          "firstLoad": {
+            "elapsedMs": 78.6005409999998,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 99,
+          "reload": {
+            "elapsedMs": 43.468958000000384,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 102.203125
+        },
+        {
+          "startupMs": 101.0430409999999,
+          "startupRssMiB": 77.171875,
+          "firstLoad": {
+            "elapsedMs": 114.4067500000001,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 99.46875,
+          "reload": {
+            "elapsedMs": 61.943624999999884,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 100.65625
+        }
+      ]
+    },
+    {
+      "latencyMs": 50,
+      "runs": 20,
+      "summary": {
+        "startupMs": {
+          "median": 90.2934164999997,
+          "p95": 114.47191699999894,
+          "min": 79.02424999999857,
+          "max": 116.28641699999935
+        },
+        "firstDashboardMs": {
+          "median": 289.27756249999993,
+          "p95": 304.2970829999995,
+          "min": 275.6832919999997,
+          "max": 318.8976669999993
+        },
+        "startupAndDashboardMs": {
+          "median": 379.7190204999997,
+          "p95": 409.4459579999984,
+          "min": 362.13516700000037,
+          "max": 433.3695839999982
+        },
+        "freshReloadMs": {
+          "median": 202.0589585000007,
+          "p95": 215.00483299999905,
+          "min": 191.22575000000143,
+          "max": 222.5159160000003
+        },
+        "startupRssMiB": {
+          "median": 77,
+          "p95": 77.09375,
+          "min": 76.796875,
+          "max": 78.015625
+        },
+        "loadedRssMiB": {
+          "median": 98.6796875,
+          "p95": 99.1875,
+          "min": 98.421875,
+          "max": 99.28125
+        },
+        "reloadRssMiB": {
+          "median": 99.8515625,
+          "p95": 101.96875,
+          "min": 95.09375,
+          "max": 103.09375
+        },
+        "firstLoadUpstreamRequests": [
+          10
+        ],
+        "reloadUpstreamRequests": [
+          9
+        ]
+      },
+      "samples": [
+        {
+          "startupMs": 98.46450000000004,
+          "startupRssMiB": 77.015625,
+          "firstLoad": {
+            "elapsedMs": 282.38283299999966,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.890625,
+          "reload": {
+            "elapsedMs": 210.56079099999988,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 95.09375
+        },
+        {
+          "startupMs": 88.56866599999921,
+          "startupRssMiB": 76.90625,
+          "firstLoad": {
+            "elapsedMs": 287.2909159999999,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.453125,
+          "reload": {
+            "elapsedMs": 202.50116700000035,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 99.5
+        },
+        {
+          "startupMs": 91.24804200000017,
+          "startupRssMiB": 77.09375,
+          "firstLoad": {
+            "elapsedMs": 289.42875000000004,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 99,
+          "reload": {
+            "elapsedMs": 200.48450000000048,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 100.015625
+        },
+        {
+          "startupMs": 85.10025000000041,
+          "startupRssMiB": 77.03125,
+          "firstLoad": {
+            "elapsedMs": 287.13658399999986,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.421875,
+          "reload": {
+            "elapsedMs": 196.84554099999968,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 99.5625
+        },
+        {
+          "startupMs": 80.50212499999998,
+          "startupRssMiB": 76.921875,
+          "firstLoad": {
+            "elapsedMs": 282.9788330000001,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.515625,
+          "reload": {
+            "elapsedMs": 195.9842090000002,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 99.75
+        },
+        {
+          "startupMs": 90.10320799999863,
+          "startupRssMiB": 76.9375,
+          "firstLoad": {
+            "elapsedMs": 275.6832919999997,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.578125,
+          "reload": {
+            "elapsedMs": 194.56474999999955,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 99.796875
+        },
+        {
+          "startupMs": 84.77254200000061,
+          "startupRssMiB": 76.96875,
+          "firstLoad": {
+            "elapsedMs": 294.0677909999995,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.578125,
+          "reload": {
+            "elapsedMs": 222.5159160000003,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 99.796875
+        },
+        {
+          "startupMs": 90.49912500000028,
+          "startupRssMiB": 76.953125,
+          "firstLoad": {
+            "elapsedMs": 304.2970829999995,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.578125,
+          "reload": {
+            "elapsedMs": 198.4746670000004,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 99.828125
+        },
+        {
+          "startupMs": 88.48483299999862,
+          "startupRssMiB": 77.03125,
+          "firstLoad": {
+            "elapsedMs": 290.7692079999997,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.78125,
+          "reload": {
+            "elapsedMs": 191.22575000000143,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 99.875
+        },
+        {
+          "startupMs": 79.02424999999857,
+          "startupRssMiB": 76.96875,
+          "firstLoad": {
+            "elapsedMs": 284.5529999999999,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.53125,
+          "reload": {
+            "elapsedMs": 204.6023750000004,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 99.75
+        },
+        {
+          "startupMs": 102.80620799999997,
+          "startupRssMiB": 77,
+          "firstLoad": {
+            "elapsedMs": 300.555875,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.578125,
+          "reload": {
+            "elapsedMs": 200.64508399999977,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 101.859375
+        },
+        {
+          "startupMs": 89.98574999999983,
+          "startupRssMiB": 77.015625,
+          "firstLoad": {
+            "elapsedMs": 290.1982500000013,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.78125,
+          "reload": {
+            "elapsedMs": 210.2525000000005,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 100.28125
+        },
+        {
+          "startupMs": 90.86537500000122,
+          "startupRssMiB": 77.0625,
+          "firstLoad": {
+            "elapsedMs": 280.07941700000083,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.84375,
+          "reload": {
+            "elapsedMs": 194.27687499999956,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 101.96875
+        },
+        {
+          "startupMs": 83.28549999999996,
+          "startupRssMiB": 77.03125,
+          "firstLoad": {
+            "elapsedMs": 278.8496670000004,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.578125,
+          "reload": {
+            "elapsedMs": 192.46941700000025,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 103.09375
+        },
+        {
+          "startupMs": 79.50412499999948,
+          "startupRssMiB": 77.015625,
+          "firstLoad": {
+            "elapsedMs": 289.04070800000045,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 99.28125,
+          "reload": {
+            "elapsedMs": 212.5659999999989,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 100.203125
+        },
+        {
+          "startupMs": 105.26466599999912,
+          "startupRssMiB": 76.796875,
+          "firstLoad": {
+            "elapsedMs": 289.1263749999998,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.609375,
+          "reload": {
+            "elapsedMs": 214.07725000000028,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 99.71875
+        },
+        {
+          "startupMs": 116.28641699999935,
+          "startupRssMiB": 78.015625,
+          "firstLoad": {
+            "elapsedMs": 293.1595409999991,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 99.1875,
+          "reload": {
+            "elapsedMs": 207.86887500000012,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 100.296875
+        },
+        {
+          "startupMs": 114.47191699999894,
+          "startupRssMiB": 76.90625,
+          "firstLoad": {
+            "elapsedMs": 318.8976669999993,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 98.75,
+          "reload": {
+            "elapsedMs": 201.61675000000105,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 99.71875
+        },
+        {
+          "startupMs": 91.56616699999904,
+          "startupRssMiB": 76.96875,
+          "firstLoad": {
+            "elapsedMs": 295.25924999999916,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 99.1875,
+          "reload": {
+            "elapsedMs": 215.00483299999905,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 100.109375
+        },
+        {
+          "startupMs": 90.48362500000076,
+          "startupRssMiB": 77,
+          "firstLoad": {
+            "elapsedMs": 292.515916999997,
+            "upstreamRequests": 10
+          },
+          "loadedRssMiB": 99,
+          "reload": {
+            "elapsedMs": 203.79441699999734,
+            "upstreamRequests": 9
+          },
+          "reloadRssMiB": 99.96875
+        }
+      ]
+    }
+  ]
+}

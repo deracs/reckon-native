@@ -8,19 +8,7 @@ if [[ "$configuration" != "release" && "$configuration" != "debug" ]]; then
     exit 1
 fi
 "$project_dir/scripts/build-icon.sh"
-node_binary="${RECKON_NODE_BINARY:-$(command -v node)}"
-node_binary="$($node_binary -p 'process.execPath')"
-"$node_binary" -e 'if (Number(process.versions.node.split(".")[0]) < 24) { console.error("The bundled backend requires Node 24 or later."); process.exit(1) }'
-"$node_binary" "$project_dir/scripts/build-backend.mjs"
-node_license="${RECKON_NODE_LICENSE:-${node_binary:h:h}/LICENSE}"
-if [[ ! -f "$node_license" ]]; then
-    print -u2 "Node LICENSE was not found. Set RECKON_NODE_LICENSE to the runtime license file."
-    exit 1
-fi
-if ! otool -L "$node_binary" | awk 'NR > 1 && $1 !~ /^\/(usr\/lib|System\/Library)\// { foreign=1 } END { exit foreign }'; then
-    print -u2 "Use a standalone Node runtime that depends only on macOS system libraries."
-    exit 1
-fi
+node "$project_dir/scripts/build-backend.mjs"
 # Clang module-cache breadcrumbs point to unavailable .pcm files after path remapping.
 swift build -c "$configuration" --product Reckon -Xswiftc -warnings-as-errors -Xswiftc -Xfrontend -Xswiftc -no-clang-module-breadcrumbs -Xswiftc -debug-prefix-map -Xswiftc "$project_dir=/reckon-native"
 binary_dir="$(swift build -c "$configuration" --show-bin-path)"
@@ -30,15 +18,13 @@ mkdir -p "$app_dir/Contents/Frameworks" "$app_dir/Contents/MacOS" "$app_dir/Cont
 cp "$binary_dir/Reckon" "$app_dir/Contents/MacOS/Reckon"
 cp "$project_dir/Resources/Info.plist" "$app_dir/Contents/Info.plist"
 cp "$project_dir/Resources/Reckon.icns" "$app_dir/Contents/Resources/Reckon.icns"
-cp "$node_binary" "$app_dir/Contents/Helpers/node"
-cp "$node_license" "$app_dir/Contents/Resources/Backend/NODE-LICENSE.txt"
-cp "$project_dir/.build/backend/backend.cjs" "$app_dir/Contents/Resources/Backend/backend.cjs"
+cp "$project_dir/.build/rust/release/reckon-backend" "$app_dir/Contents/Helpers/reckon-backend"
 cp "$project_dir/.build/backend/THIRD-PARTY-NOTICES.txt" "$app_dir/Contents/Resources/Backend/THIRD-PARTY-NOTICES.txt"
 sparkle_dir="$project_dir/.build/artifacts/sparkle/Sparkle"
 ditto "$sparkle_dir/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework" "$app_dir/Contents/Frameworks/Sparkle.framework"
 cp "$sparkle_dir/LICENSE" "$app_dir/Contents/Resources/Sparkle-LICENSE.txt"
 strip -S "$app_dir/Contents/MacOS/Reckon"
-chmod +x "$app_dir/Contents/Helpers/node"
-codesign --force --sign - "$app_dir/Contents/Helpers/node"
+chmod +x "$app_dir/Contents/Helpers/reckon-backend"
+codesign --force --sign - "$app_dir/Contents/Helpers/reckon-backend"
 codesign --force --sign - "$app_dir"
 print "Built $app_dir"

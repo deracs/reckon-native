@@ -64,8 +64,16 @@ struct BundledBackendTests: Sendable {
         let resources = folder.appendingPathComponent("Contents/Resources/Backend")
         try FileManager.default.createDirectory(at: helpers, withIntermediateDirectories: true)
         try FileManager.default.createDirectory(at: resources, withIntermediateDirectories: true)
-        try FileManager.default.createSymbolicLink(at: helpers.appendingPathComponent("node"), withDestinationURL: appBundle.appendingPathComponent("Contents/Helpers/node"))
-        try script.write(to: resources.appendingPathComponent("backend.cjs"), atomically: true, encoding: .utf8)
+        // Node is test tooling only: the fake process exercises Swift lifecycle failures.
+        let node = URL(fileURLWithPath: "/usr/bin/env")
+        let executable = helpers.appendingPathComponent("reckon-backend")
+        let fixture = resources.appendingPathComponent("backend.cjs")
+        let searchPaths = (ProcessInfo.processInfo.environment["PATH"] ?? "").split(separator: ":")
+        let nodePath = try bankRequire(ProcessInfo.processInfo.environment["RECKON_TEST_NODE"] ?? searchPaths
+            .map { "\($0)/node" }.first { FileManager.default.isExecutableFile(atPath: $0) })
+        try ("#!/bin/sh\nexec \"\(node.path)\" \"\(nodePath)\" \"\(fixture.path)\"\n").write(to: executable, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: executable.path)
+        try script.write(to: fixture, atomically: true, encoding: .utf8)
         return folder
     }
 

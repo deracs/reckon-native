@@ -1,9 +1,4 @@
 {
-  "$schema": "./node_modules/@effect/tsgo/oxlint-schema.json",
-  "extends": ["./node_modules/@effect/tsgo/oxlint-presets/recommended.json"],
-  "ignorePatterns": [".build/**", "dist/**"],
-  "rules": {
-    "effecttsgo/lazy-effect": "off",
-    "effecttsgo/unstable-api-usage": "off"
-  }
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "ignorePatterns": [".build/**", "dist/**"]
 }

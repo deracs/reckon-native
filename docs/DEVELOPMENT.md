@@ -4,20 +4,17 @@ For installation and everyday use, read the [README](../README.md). Run the comm
 
 ## Build from source
 
-The build requires Swift 6, the macOS Command Line Tools, PNPM 10.12.1, and Node 24. Xcode is optional.
+The build requires Swift 6, Rust 1.98.1, the macOS Command Line Tools, PNPM 10.12.1, and Node 24. Xcode is optional.
 
-The adapted Reckon backend source lives in `Backend/Reckon`. A source build needs no other checkout or private repository token. `Backend/Reckon/SOURCE.json` records its origin and current file hashes. This copy contains only the native app domain and Akahu adapter.
+This experiment branch uses Rust for the backend and Swift for the interface. `Backend/src` contains the backend source. `Backend/Cargo.lock` pins its dependencies. Node runs development and release scripts only. The app bundle contains no Node runtime or TypeScript backend.
 
 ```sh
 pnpm install --frozen-lockfile
-./scripts/download-node.sh
-export RECKON_NODE_BINARY="$PWD/.build/node-runtime/node-v24.21.0-darwin-$(uname -m | sed 's/x86_64/x64/')/bin/node"
-export RECKON_NODE_LICENSE="$(dirname "$(dirname "$RECKON_NODE_BINARY")")/LICENSE"
 ./scripts/build-app.sh
 open dist/Reckon.app
 ```
 
-The script copies the standalone Node runtime, backend, and license notices into the app bundle, embeds the pinned Sparkle framework, then signs the bundle locally. `RECKON_NODE_BINARY` and `RECKON_NODE_LICENSE` select a standalone Node runtime and its license. `./scripts/download-node.sh` downloads the pinned official runtime for the current Mac architecture and verifies its SHA-256 checksum. On GitHub Actions it exports those paths for the next build step.
+The script compiles a release Rust executable and copies it into the app bundle with dependency license notices. It also embeds Sparkle and signs the bundle locally. Rust uses the macOS TLS implementation through `native-tls`.
 
 The completed app has no dependency on source directories or build tools. Personal builds are ad-hoc signed. Distribution with normal Gatekeeper acceptance needs a Developer ID signature and Apple notarization. The workflow does not claim to provide those. A downloaded personal build can need approval under System Settings → Privacy & Security, and managed Macs can block it.
 
@@ -42,30 +39,20 @@ The installed app also supports `--launch-at-login-status`, `--enable-launch-at-
 ```sh
 pnpm check
 swift run -Xswiftc -warnings-as-errors ReckonChecks
-node --test Tests/domain-models.test.mjs Tests/backend-integration.test.mjs Tests/software-updates.test.mjs
+pnpm test
 ```
 
 Build the app before the checks. The Swift checks exercise the bundled process. The integration checks use a local Akahu fixture and run the bundled backend from a temporary directory. They require no real credentials or bank connection.
 
 The Swift checks use an executable runner because the standalone Command Line Tools omit the Swift Testing and XCTest modules.
 
-## TypeScript tooling
+## Backend checks and tools
 
-The backend pins Effect and `@effect/platform-node` to 4.0.5. It uses Effect HTTP modules, the Node server adapter, and the Node runtime. `NodeHttpClient.layerNodeHttp` uses Node’s HTTP/HTTPS agents, whose lifetime belongs to the Effect scope.
+`pnpm check` runs Rustfmt, Clippy with warnings as errors, Oxlint, and Oxfmt. `pnpm test` runs Rust calculation checks and the HTTP integration suite. `pnpm fmt` formats Rust and development scripts.
 
-`pnpm check` runs TypeScript, Oxlint with the recommended Effect rules, and the Oxfmt format check. The separate commands are `pnpm typecheck`, `pnpm lint`, and `pnpm fmt:check`. Oxlint warnings and errors fail the check.
+The integration suite uses fictional data on loopback. It checks all seven bank operations, authentication, source errors, retries, pagination, cancellation, and shared dashboard reads. Rust checks cover decimal arithmetic, transfer detection, recurring charges, and calendar boundaries. Generated date windows cover all four projection cadences.
 
-`pnpm lint:fix` applies automatic lint corrections. `pnpm fmt` formats JavaScript, TypeScript, configuration, and workflow files. It includes the adapted backend source and excludes Markdown. Update the source hashes after changes to the adapted copy.
-
-The type check includes `Tests/backend-schema-types.test.ts`. This test makes sure that plain records and structurally similar classes cannot replace a decoded schema class.
-
-The project permits Effect v4 APIs that carry the unstable label. The `unstable-api-usage` lint rule is disabled. Exact dependency pins and local HTTP fixture tests cover these integration boundaries.
-
-All numeric wire amounts, numeric query parameters, and numeric domain output fields reject non-finite values. Fixture tests cover rejected `NaN`, infinities, numeric overflow, and valid signed decimal strings.
-
-`pnpm install` runs `effect-tsgo patch --oxlint`, which patches both TypeScript 7 and Oxlint's type-aware engine with `@effect/tsgo`. Their versions are pinned together because the patch supports specific compiler and linter versions. Effect diagnostics run through Oxlint; the language-service plugin retains completions, quick info, and refactors without duplicate diagnostics.
-
-The root `tsconfig.json` supplies the same module aliases and compiler settings to editors, checks, and esbuild. In VS Code-based editors, install the TypeScript 7 extension and the [Oxc extension](https://oxc.rs/docs/guide/usage/linter/editors.html), then select the workspace TypeScript version if prompted. The committed workspace settings select the patched native compiler. For other LSP clients, `pnpm exec effect-tsgo get-exe-path` prints the native server executable; launch it with `--lsp --stdio`.
+All source money amounts and numeric query parameters must be finite. Invalid source data produces a generic HTTP 502 response. The backend does not print credentials or bank records.
 
 For UI checks with sample data:
 
@@ -99,7 +86,9 @@ Merchant logos use Akahu’s optional [transaction metadata](https://developers.
 
 The backend uses Akahu source data. It does not use the web app's database, saved category overrides, or category rules. The summary endpoints combine currencies without conversion. If the accounts include foreign currencies, the app labels those totals and omits the dollar symbol. Account balances retain their currency.
 
-The app reads stats every five minutes. **Reload stats** reads them immediately. Neither action requests a bank refresh. Failed summary endpoints leave account balances visible. A failed account request retains the previous snapshot and displays an error. Each refresh starts a backend and stops it after receiving the dashboard. Swift retains the displayed data between refreshes.
+The app reads stats every five minutes. **Reload stats** reads them immediately. Neither action requests a bank refresh. Failed summary endpoints leave account balances visible. A failed account request retains the previous snapshot and displays an error.
+
+Each refresh starts a backend and stops it after the dashboard response. Swift retains the displayed data between refreshes.
 
 ## Local history and alerts
 
@@ -139,31 +128,42 @@ Record any checks that you cannot complete in the release notes:
 
 `Sources/ReckonCore/BundledBackend.swift` owns the child process, startup protocol, private API token, cancellation, and shutdown. Its `fetchDashboard` operation starts a child for one refresh and stops it on success, failure, or cancellation. There is no idle backend process between refreshes. It passes credentials through stdin. The child watches that pipe and its parent process so it also stops after an app crash. The local API token changes on every launch and stays in memory.
 
-`Backend/backend-main.ts` connects the Akahu adapter, `NodeRuntime`, and the local HTTP boundary in `Backend/native-bank-server.ts`. Effect's `NodeHttpServer` owns the listener and request scope. It listens on `127.0.0.1`. macOS selects the port.
+`Backend/src/main.rs` owns the stdin protocol, process signals, parent monitor, and loopback listener. A single-thread Tokio runtime owns HTTP work. A separate thread watches the app pipe. Pipe closure, parent exit, SIGINT, and SIGTERM stop the process and close active source connections.
 
-The API permits authenticated GET requests to seven bank routes and `/health`. It rejects browser origins, incorrect Host headers, writes, and unrelated routes. Effect schemas decode queries and encode responses. Logs contain no bank records or credentials.
+`native_bank_server.rs` permits authenticated GET requests to seven bank routes and `/health`. It rejects browser origins, incorrect Host headers, writes, and unrelated routes. It parses queries before any source request. `backend_handshake.rs` accepts the production Akahu URL or a local fixture URL only.
 
-`akahu-http-client.ts` uses Effect `HttpClient` over `NodeHttpClient.layerNodeHttp` for authenticated GET requests and JSON codecs. The Node HTTP transport avoids initializing Fetch for upstream requests. It retries transient failures up to five times with exponential backoff and jitter. It honors `Retry-After`, rejects redirects, and limits each page read to twenty seconds. Source failures become safe `BankDataError` values and generic HTTP 502 responses.
+`akahu_bank_data.rs` owns the Akahu client, pagination, transient retries, and caches. Each page has a twenty-second budget that includes retries. The client rejects redirects. It permits five retries after the initial request and honors `Retry-After`. `akahu_wire.rs` parses source records and converts them to bank models.
 
-Effect `Stream.paginate` reads each source page. Effect `Cache` shares one history read across a dashboard reload. Swift sends the same `X-Reckon-Snapshot` UUID on all eight requests in that reload. The shared history starts on the first day of the month six months before the current Auckland month. Each section applies its own date range before calculations.
+Swift sends the same `X-Reckon-Snapshot` UUID on all eight requests in a dashboard refresh. The first history read starts on the first day six months before the current Auckland month. Each section applies its own date range. Requests outside this range read their full range directly.
 
-Caches belong to the backend process and disappear after each native refresh. Within a running process, the history cache retains at most four successful reloads for one minute. Each new reload uses a new UUID, so manual reloads read fresh transaction history immediately. The account cache retains one successful account list for five minutes. Failed reads expire immediately. Requests without a snapshot ID read history directly. Requests outside the shared date range also read their full requested range directly.
+The account cache retains one successful result for five minutes. The snapshot cache retains at most four dashboard results for one minute. A new UUID reads fresh history. Failed and cancelled reads do not enter either cache. A mutex shares each active read. If its owner disconnects, another caller can retry.
 
-A failed history read leaves account balances available. Client disconnects and app shutdown interrupt active reads and close source connections. App pipe closure, parent exit, SIGINT, and SIGTERM close the root Effect scope before process exit. The backend contains seven bank operations. It contains no database services, budgets, goals, category rules, taxonomy bundle, or unsupported write methods.
+The caches disappear after each native refresh.
 
-`scripts/build-backend.mjs` creates one JavaScript bundle from the source snapshot in `Backend/Reckon`. `Sources/ReckonApp` owns SwiftUI, the native status item and popover lifecycle, macOS authentication, and Keychain access. `ReckonAppLock` rejects authentication replies from cancelled or previous sessions. No database or TypeScript calculation port is needed.
+`bank_derivations.rs` owns pure bank calculations. It uses decimal arithmetic and the existing fixed 7/14/30/91-day intervals for recurring estimates. `bank_calendar.rs` owns calendar operations. `bank_models.rs` owns bank identities and decimal JSON output. These modules preserve the native API contract without a second service interface that only forwards calls.
 
-The backend uses strict TypeScript checks with `exactOptionalPropertyTypes` and `noUncheckedIndexedAccess`. Oxlint also applies its recommended Effect diagnostics.
+`Sources/ReckonApp` owns SwiftUI, the status item, authentication, and Keychain access. The backend contains no database, budgets, goals, category rules, or write operations.
 
 ## Backend performance
 
-`scripts/measure-backend.mjs` measures backend startup, dashboard HTTP response time, and backend RSS with a local synthetic fixture. The fixture contains three accounts and 3,000 transactions. It compares zero delay with a 50 ms delay per source response. Each dashboard uses a fresh snapshot UUID. The [memory reduction measurements](performance/backend-memory-2026-10-21.md) compare the current implementation with the [original baseline](performance/backend-2026-10-21.md). The harness uses the native launcher’s `--max-semi-space-size=2` setting. This limits V8’s young generation rather than imposing a total heap limit. Recheck this choice when changing the bundled Node version or workload.
+`scripts/measure-backend.mjs` measures backend startup, dashboard response time, and process RSS with three fictional accounts and 3,000 transactions. Each scenario uses 20 fresh processes. Source responses have either zero delay or a 50 ms delay. Each dashboard uses a fresh snapshot UUID.
 
 ```sh
-node scripts/measure-backend.mjs --runs 20 --output .build/backend-performance.json --max-loaded-rss-mib 110
+node scripts/measure-backend.mjs --runs 20 --output .build/rust-backend-performance.json
 ```
 
-The optional RSS limit checks the median after the first dashboard in each scenario. It is a local regression budget; memory varies with runtime, architecture, and fixture size. `startupAndDashboardMs` includes process startup for the production refresh lifecycle. The warm reload measurement is retained for comparison with the earlier persistent backend.
+For the original TypeScript version, retain a baseline bundle and select it explicitly:
+
+```sh
+node scripts/measure-backend.mjs --implementation typescript --bundle .build/typescript-baseline --runs 20 --output .build/typescript-backend-performance.json
+RECKON_BASELINE_BUNDLE="$PWD/.build/typescript-baseline" node --test Tests/backend-integration.test.mjs
+```
+
+The optional baseline check compares JSON responses from both implementations against the same fixture. A baseline bundle needs `Contents/Helpers/node` and `Contents/Resources/Backend/backend.cjs`. The baseline process uses the original `--max-semi-space-size=2` setting.
+
+`startupAndDashboardMs` covers the production refresh lifecycle. RSS samples cover the backend process after its first dashboard. These measurements exclude Swift, Keychain, interface work, peak memory, and live Akahu latency. The warm reload metric permits comparison with earlier measurements. It does not represent the current app lifecycle.
+
+See the [Rust comparison](performance/rust-backend-2026-10-22.md) for results and limits. The older reports retain their original TypeScript measurements.
 
 ## GitHub builds and releases
 

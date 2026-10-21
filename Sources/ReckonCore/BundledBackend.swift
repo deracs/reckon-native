@@ -93,19 +93,16 @@ public final class BundledBackend {
     public func start(credentials: AkahuCredentials) async throws -> ReckonConnection {
         stop()
         try Task.checkCancellation()
-        let executable = bundleURL.appendingPathComponent("Contents/Helpers/node")
-        let script = bundleURL.appendingPathComponent("Contents/Resources/Backend/backend.cjs")
-        guard FileManager.default.isExecutableFile(atPath: executable.path),
-              FileManager.default.fileExists(atPath: script.path) else { throw BundledBackendError.missingResources }
+        let executable = bundleURL.appendingPathComponent("Contents/Helpers/reckon-backend")
+        guard FileManager.default.isExecutableFile(atPath: executable.path) else { throw BundledBackendError.missingResources }
         var randomBytes = [UInt8](repeating: 0, count: 32)
         guard SecRandomCopyBytes(kSecRandomDefault, randomBytes.count, &randomBytes) == errSecSuccess else {
             throw BundledBackendError.randomnessUnavailable
         }
         let child = BackendChild(apiToken: randomBytes.map { String(format: "%02x", $0) }.joined())
         child.process.executableURL = executable
-        // Keep the young generation small for short, occasional dashboard loads.
-        child.process.arguments = ["--max-semi-space-size=2", script.path]
-        child.process.currentDirectoryURL = script.deletingLastPathComponent()
+        child.process.arguments = []
+        child.process.currentDirectoryURL = executable.deletingLastPathComponent()
         child.process.environment = ["PATH": "/usr/bin:/bin", "LANG": "en_NZ.UTF-8", "TZ": "Pacific/Auckland"]
         child.process.standardInput = child.input
         child.process.standardOutput = child.output

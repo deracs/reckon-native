@@ -11,8 +11,7 @@ import test from "node:test"
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const bundle = process.env.RECKON_APP_BUNDLE ?? resolve(project, "dist/Reckon.app")
-const runtime = resolve(bundle, "Contents/Helpers/node")
-const script = resolve(bundle, "Contents/Resources/Backend/backend.cjs")
+const runtime = resolve(bundle, "Contents/Helpers/reckon-backend")
 const appToken = "app_token_local_fixture"
 const userToken = "user_token_local_fixture"
 const apiToken = "local-api-fixture-".repeat(4)
@@ -26,9 +25,13 @@ const timeout = (promise, milliseconds = 6000) => {
   ]).finally(() => clearTimeout(timer))
 }
 
-async function launchBackend(t, handshake) {
+async function launchBackend(t, handshake, baselineBundle) {
   const directory = await mkdtemp(resolve(tmpdir(), "reckon-backend-"))
-  const child = spawn(runtime, ["--max-semi-space-size=2", script], {
+  const executable = baselineBundle ? resolve(baselineBundle, "Contents/Helpers/node") : runtime
+  const args = baselineBundle
+    ? ["--max-semi-space-size=2", resolve(baselineBundle, "Contents/Resources/Backend/backend.cjs")]
+    : []
+  const child = spawn(executable, args, {
     cwd: directory,
     env: { PATH: "/usr/bin:/bin" },
     stdio: ["pipe", "pipe", "pipe"],
@@ -79,6 +82,8 @@ async function fakeAkahu(
   {
     accountBalance = { current: 123.45, currency: "NZD" },
     transactionAmount = -25.5,
+    pendingTransactions = [],
+    extraTransactions = [],
     responses = [],
     transactionDate = (date) => date,
     transactionPageSize = Infinity,
@@ -106,6 +111,7 @@ async function fakeAkahu(
     category: { _id: category, name: category },
   })
   const transactions = [
+    ...extraTransactions,
     ...["2026-07-05", "2026-08-05", "2026-09-05", "2026-10-05"].map((date, index) =>
       transaction(`rent_${index}`, "acc_main", date, -75, "Rent", "Rent"),
     ),
@@ -131,7 +137,8 @@ async function fakeAkahu(
       items = url.searchParams.has("cursor") ? accounts.slice(2) : accounts.slice(0, 2)
       cursor = url.searchParams.has("cursor") ? null : "second-page"
     } else if (url.pathname.endsWith("/transactions/pending")) {
-      items = []
+      const account = url.pathname.split("/")[3]
+      items = pendingTransactions.filter((row) => (row._account ?? row.account ?? "acc_main") === account)
     } else if (url.pathname.endsWith("/transactions")) {
       const account = url.pathname.split("/")[3]
       const matching = transactions.filter(
@@ -570,3 +577,58 @@ test("abandoning a dashboard cancels shared history and the same reload ID can r
   assert.equal(recovered.status, 200)
   assert.equal((await recovered.json()).find((row) => row.category === "Groceries").spent, "25.5")
 })
+
+test(
+  "Rust responses match the original TypeScript backend against the same source fixture",
+  { skip: !process.env.RECKON_BASELINE_BUNDLE },
+  async (t) => {
+    const { today, date } = currentFixtureDates()
+    const upstream = await fakeAkahu(t, {
+      transactionDate: date,
+      transactionPageSize: 2,
+      extraTransactions: [
+        {
+          _id: "metadata_free",
+          _account: "acc_main",
+          date: `${today}T00:00:00Z`,
+          description: "No metadata fixture",
+          amount: -1.005,
+        },
+      ],
+      pendingTransactions: [
+        { account: "acc_main", date: `${today}T00:00:00Z`, description: "Pending fixture", amount: "-12.50" },
+        { _account: "acc_save", date: `${today}T00:00:00Z`, description: "Small pending fixture", amount: -1e-7 },
+        { date: `${today}T00:00:00Z`, description: "Unknown pending fixture", amount: 0 },
+      ],
+    })
+    const handshake = { appToken, userToken, apiToken, akahuBaseURL: upstream.baseURL }
+    const rust = await launchBackend(t, handshake)
+    const typescript = await launchBackend(t, handshake, process.env.RECKON_BASELINE_BUNDLE)
+    const ready = await Promise.all([rust.firstLine, typescript.firstLine])
+    const paths = [
+      "/accounts",
+      "/freshness",
+      `/transactions?from=${date("2026-07-01")}&to=${today}&limit=100`,
+      `/transactions?from=${date("2026-07-01")}&to=${today}&excludeTransfers=true&query=rent&limit=2`,
+      `/cashflow?from=${date("2026-07-01")}&to=${today}`,
+      `/spending?from=${date("2026-07-01")}&to=${today}&excludeTransfers=false`,
+      `/recurring?from=${date("2026-07-01")}&to=${today}&minOccurrences=2`,
+      "/forecast?days=30&excludeTransfers=true",
+    ]
+    for (const path of paths) {
+      const responses = await Promise.all(
+        ready.map(async ({ port }) => {
+          const response = await fetch(`http://127.0.0.1:${port}${path}`, {
+            headers: {
+              Authorization: `Bearer ${apiToken}`,
+              "X-Reckon-Snapshot": "00000000-0000-4000-8000-000000000001",
+            },
+          })
+          assert.equal(response.status, 200, path)
+          return response.json()
+        }),
+      )
+      assert.deepEqual(responses[0], responses[1], path)
+    }
+  },
+)

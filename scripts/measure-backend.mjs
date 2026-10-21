@@ -14,6 +14,8 @@ const { values } = parseArgs({
   options: {
     runs: { type: "string", default: "20" },
     output: { type: "string" },
+    bundle: { type: "string" },
+    implementation: { type: "string", default: "rust" },
     "max-loaded-rss-mib": { type: "string" },
   },
 })
@@ -23,10 +25,12 @@ if (maximumLoadedRSS !== undefined)
 const runs = Number(values.runs)
 assert(Number.isInteger(runs) && runs >= 2 && runs <= 100, "Use 2–100 measurement runs.")
 const project = resolve(dirname(fileURLToPath(import.meta.url)), "..")
-const runtime = resolve(project, "dist/Reckon.app/Contents/Helpers/node")
-const backend = resolve(project, "dist/Reckon.app/Contents/Resources/Backend/backend.cjs")
-// Match BundledBackend.swift: benchmark the runtime settings shipped by the native app.
-const runtimeArguments = ["--max-semi-space-size=2"]
+assert(["rust", "typescript"].includes(values.implementation), "Use rust or typescript.")
+const bundle = resolve(values.bundle ?? resolve(project, "dist/Reckon.app"))
+const isRust = values.implementation === "rust"
+const runtime = resolve(bundle, isRust ? "Contents/Helpers/reckon-backend" : "Contents/Helpers/node")
+const backend = isRust ? runtime : resolve(bundle, "Contents/Resources/Backend/backend.cjs")
+const runtimeArguments = isRust ? [] : ["--max-semi-space-size=2", backend]
 const token = "synthetic-benchmark-token"
 const today = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Pacific/Auckland",
@@ -134,7 +138,7 @@ async function measureScenario(latencyMs) {
   try {
     for (let run = 0; run < runs; run += 1) {
       const started = performance.now()
-      const child = spawn(runtime, [...runtimeArguments, backend], {
+      const child = spawn(runtime, runtimeArguments, {
         env: { PATH: "/usr/bin:/bin" },
         stdio: ["pipe", "pipe", "pipe"],
       })
@@ -219,9 +223,12 @@ const report = {
     architecture: process.arch,
     platform: process.platform,
     kernel: release(),
-    backendNode: execFileSync(runtime, ["--version"], { encoding: "utf8" }).trim(),
-    runtimeArguments,
-    effect: JSON.parse(await readFile(resolve(project, "package.json"), "utf8")).dependencies.effect,
+    implementation: values.implementation,
+    toolchain: isRust
+      ? execFileSync("rustc", ["--version"], { encoding: "utf8" }).trim()
+      : execFileSync(runtime, ["--version"], { encoding: "utf8" }).trim(),
+    runtimeArguments: isRust ? [] : ["--max-semi-space-size=2", "<backend.cjs>"],
+
     bundleBytes: (await readFile(backend)).length,
     bundleSha256: createHash("sha256")
       .update(await readFile(backend))
