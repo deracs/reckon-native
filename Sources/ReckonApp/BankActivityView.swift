@@ -1,4 +1,5 @@
 import ReckonCore
+import ReckonImages
 import SwiftUI
 
 struct BankActivityView: View {
@@ -80,8 +81,8 @@ private struct BankMerchantLogoView: View {
     var body: some View {
         Group {
             if let url = transaction.logoURL {
-                AsyncImage(url: url) { phase in
-                    if let image = phase.image { image.resizable().scaledToFit().padding(3) }
+                CachedBankImage(url: url) { logo in
+                    if let image = logo { image.resizable().scaledToFit().padding(3) }
                     else { Text(initials).font(.caption.weight(.semibold)) }
                 }
             } else { Text(initials).font(.caption.weight(.semibold)) }

@@ -1,12 +1,13 @@
 import ReckonCore
+import ReckonImages
 import SwiftUI
 
 struct BankLogoView: View {
     let account: BankAccount
 
     var body: some View {
-        AsyncImage(url: account.bankLogoURL) { phase in
-            if let logo = phase.image {
+        CachedBankImage(url: account.bankLogoURL) { image in
+            if let logo = image {
                 logo.resizable().scaledToFit()
             } else {
                 Image(systemName: "building.columns")

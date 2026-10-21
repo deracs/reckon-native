@@ -39,6 +39,7 @@ The installed app also supports `--launch-at-login-status`, `--enable-launch-at-
 ```sh
 pnpm check
 swift run -Xswiftc -warnings-as-errors ReckonChecks
+swift run -Xswiftc -warnings-as-errors ReckonImageChecks
 pnpm test
 ```
 
@@ -83,6 +84,12 @@ Small info icons beside headings hold longer explanations: hover for a tooltip o
 Report dates use Pacific/Auckland time. Cashflow and spending exclude inter-account transfers through the Reckon calculations.
 
 Merchant logos use Akahu’s optional [transaction metadata](https://developers.akahu.nz/docs/the-transaction-model). Unavailable logos fall back to merchant initials. No extra enrichment service is called.
+
+Bank and merchant logos share the memory cache in `Sources/ReckonImages`. A tab can recreate its views without a placeholder flash or another download. Concurrent rows share one request per URL. Reads continue when a tab disappears, so another tab can reuse the result.
+
+The decoded cache has an 8 MiB budget and a limit of 256 entries. Images have at most 128 pixels on their longest side. The HTTP cache has a 2 MiB memory budget, and source downloads have a 2 MiB size limit. Failed logos retain their fallback and wait one minute before another attempt. Logo images and URLs do not enter a disk cache.
+
+`ReckonImageChecks` renders fictional logos in an offscreen window. It checks the first frame after twenty tab recreations, shared requests, mid-request tab changes, changed URLs, error fallbacks, and thumbnail dimensions.
 
 The backend uses Akahu source data. It does not use the web app's database, saved category overrides, or category rules. The summary endpoints combine currencies without conversion. If the accounts include foreign currencies, the app labels those totals and omits the dollar symbol. Account balances retain their currency.
 

@@ -44,7 +44,9 @@ jobs:
       - name: Build app
         run: ./scripts/build-app.sh
       - name: Swift checks
-        run: swift run -Xswiftc -warnings-as-errors ReckonChecks
+        run: |
+          swift run -Xswiftc -warnings-as-errors ReckonChecks
+          swift run -Xswiftc -warnings-as-errors ReckonImageChecks
       - name: Backend and update-signature checks with synthetic data
         run: pnpm test
       - name: Verify, sign and package app
