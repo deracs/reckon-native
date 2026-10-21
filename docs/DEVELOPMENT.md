@@ -165,6 +165,14 @@ The optional baseline check compares JSON responses from both implementations ag
 
 See the [Rust comparison](performance/rust-backend-2026-10-22.md) for results and limits. The older reports retain their original TypeScript measurements.
 
+For a read-only comparison with the saved Akahu connection, use:
+
+```sh
+node scripts/compare-live-backends.mjs --runs 5 --replay-runs 20
+```
+
+This command compares direct live requests, then replays one real-data snapshot held only in memory. It reads credentials from Keychain and keeps all bank records out of its output. The default report path is `.build/live-backend-comparison.json`. See the [real Akahu comparison](performance/live-akahu-backend-2026-10-22.md) for results and limits.
+
 ## GitHub builds and releases
 
 The public repository is [deracs/reckon-native](https://github.com/deracs/reckon-native). Pushes to `main` and pull requests build and check Apple silicon and Intel variants. The workflow uses synthetic bank fixtures, needs no Akahu tokens, and uploads ZIPs, SHA-256 checksums, and public update-signature metadata as Actions artifacts.

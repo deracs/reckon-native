@@ -1,0 +1,605 @@
+{
+  "measuredAt": "2026-10-21T20:05:35.124Z",
+  "environment": {
+    "cpu": "Apple M3 Pro",
+    "architecture": "arm64",
+    "kernel": "25.5.0",
+    "backends": {
+      "typescript": {
+        "sha256": "e766630c3ae9392198b41b283e558c7ba687d22e34788bc8eb0bb02a246c6575",
+        "bytes": 979700
+      },
+      "rust": {
+        "sha256": "242aa9ca9c59e99044e56bc4fbe3e407fbe4ff5e9504a52489aafea323159f6f",
+        "bytes": 1657712
+      }
+    }
+  },
+  "method": {
+    "live": "Both backends read Akahu directly with the saved Keychain connection. Each sample starts a fresh process and loads the same eight dashboard requests. No bank refresh or write operation occurs.",
+    "replay": "One read-only Akahu capture is retained only in RAM. Both backends replay the exact same successful source pages over loopback. Capture time is excluded. The replay server cannot reach Akahu after capture.",
+    "memory": "Backend process RSS in MiB from ps, immediately after readiness and after the dashboard. Not peak RSS or the full Swift app. Sampling occurs outside timed phases.",
+    "privacy": "Only timings, RSS, binary metadata, and response-equality counts enter this report. No credentials, account identities, balances, categories, merchants, or transactions are saved.",
+    "limits": "Live results include network and provider variation. Replay excludes TLS and external latency. The parent harness and its in-memory source capture are excluded from RSS."
+  },
+  "live": {
+    "runsPerImplementation": 5,
+    "order": "Alternating pairs, TypeScript first in the first pair.",
+    "implementations": {
+      "typescript": {
+        "summary": {
+          "startupMs": {
+            "median": 203.39216699999997,
+            "p95": 229.73604099999648,
+            "min": 85.54608300000109,
+            "max": 229.73604099999648
+          },
+          "dashboardMs": {
+            "median": 12998.486000000004,
+            "p95": 14039.88625000001,
+            "min": 12288.045082999997,
+            "max": 14039.88625000001
+          },
+          "startupAndDashboardMs": {
+            "median": 13119.054749999996,
+            "p95": 14250.013208000018,
+            "min": 12373.591165999998,
+            "max": 14250.013208000018
+          },
+          "startupRssMiB": {
+            "median": 76.90625,
+            "p95": 76.984375,
+            "min": 76.890625,
+            "max": 76.984375
+          },
+          "loadedRssMiB": {
+            "median": 84.71875,
+            "p95": 84.8125,
+            "min": 83.203125,
+            "max": 84.8125
+          }
+        },
+        "samples": [
+          {
+            "startupMs": 203.39216699999997,
+            "dashboardMs": 13319.666667,
+            "startupAndDashboardMs": 13523.058834,
+            "startupRssMiB": 76.984375,
+            "loadedRssMiB": 83.34375
+          },
+          {
+            "startupMs": 229.73604099999648,
+            "dashboardMs": 12491.774417,
+            "startupAndDashboardMs": 12721.510457999997,
+            "startupRssMiB": 76.984375,
+            "loadedRssMiB": 84.8125
+          },
+          {
+            "startupMs": 85.54608300000109,
+            "dashboardMs": 12288.045082999997,
+            "startupAndDashboardMs": 12373.591165999998,
+            "startupRssMiB": 76.90625,
+            "loadedRssMiB": 83.203125
+          },
+          {
+            "startupMs": 210.12695800000802,
+            "dashboardMs": 14039.88625000001,
+            "startupAndDashboardMs": 14250.013208000018,
+            "startupRssMiB": 76.890625,
+            "loadedRssMiB": 84.796875
+          },
+          {
+            "startupMs": 120.56874999999127,
+            "dashboardMs": 12998.486000000004,
+            "startupAndDashboardMs": 13119.054749999996,
+            "startupRssMiB": 76.890625,
+            "loadedRssMiB": 84.71875
+          }
+        ]
+      },
+      "rust": {
+        "summary": {
+          "startupMs": {
+            "median": 9.562999999998283,
+            "p95": 13.583374999998341,
+            "min": 8.477124999990338,
+            "max": 13.583374999998341
+          },
+          "dashboardMs": {
+            "median": 10789.921875,
+            "p95": 10905.218874999991,
+            "min": 10244.596666999998,
+            "max": 10905.218874999991
+          },
+          "startupAndDashboardMs": {
+            "median": 10802.842833000002,
+            "p95": 10913.695999999982,
+            "min": 10258.180041999996,
+            "max": 10913.695999999982
+          },
+          "startupRssMiB": {
+            "median": 6.40625,
+            "p95": 6.421875,
+            "min": 6.390625,
+            "max": 6.421875
+          },
+          "loadedRssMiB": {
+            "median": 13.671875,
+            "p95": 14.953125,
+            "min": 12.59375,
+            "max": 14.953125
+          }
+        },
+        "samples": [
+          {
+            "startupMs": 13.583374999998341,
+            "dashboardMs": 10244.596666999998,
+            "startupAndDashboardMs": 10258.180041999996,
+            "startupRssMiB": 6.40625,
+            "loadedRssMiB": 14.953125
+          },
+          {
+            "startupMs": 9.562999999998283,
+            "dashboardMs": 10838.733333000004,
+            "startupAndDashboardMs": 10848.296333000002,
+            "startupRssMiB": 6.421875,
+            "loadedRssMiB": 12.59375
+          },
+          {
+            "startupMs": 8.477124999990338,
+            "dashboardMs": 10905.218874999991,
+            "startupAndDashboardMs": 10913.695999999982,
+            "startupRssMiB": 6.390625,
+            "loadedRssMiB": 12.859375
+          },
+          {
+            "startupMs": 8.76270900000236,
+            "dashboardMs": 10595.518500000006,
+            "startupAndDashboardMs": 10604.281209000008,
+            "startupRssMiB": 6.390625,
+            "loadedRssMiB": 13.671875
+          },
+          {
+            "startupMs": 12.920958000002429,
+            "dashboardMs": 10789.921875,
+            "startupAndDashboardMs": 10802.842833000002,
+            "startupRssMiB": 6.40625,
+            "loadedRssMiB": 14.46875
+          }
+        ]
+      }
+    },
+    "parity": {
+      "identicalPairs": 5,
+      "sections": [
+        {
+          "section": "accounts",
+          "identicalPairs": 5
+        },
+        {
+          "section": "cashflow",
+          "identicalPairs": 5
+        },
+        {
+          "section": "spending",
+          "identicalPairs": 5
+        },
+        {
+          "section": "previous-spending",
+          "identicalPairs": 5
+        },
+        {
+          "section": "recurring",
+          "identicalPairs": 5
+        },
+        {
+          "section": "freshness",
+          "identicalPairs": 5
+        },
+        {
+          "section": "transactions",
+          "identicalPairs": 5
+        },
+        {
+          "section": "forecast",
+          "identicalPairs": 5
+        }
+      ]
+    }
+  },
+  "replay": {
+    "runsPerImplementation": 20,
+    "order": "Alternating pairs, TypeScript first in the first pair.",
+    "implementations": {
+      "typescript": {
+        "summary": {
+          "startupMs": {
+            "median": 73.98539600000367,
+            "p95": 76.26116699998965,
+            "min": 71.21504100001766,
+            "max": 199.94008299999405
+          },
+          "dashboardMs": {
+            "median": 63.175875000000815,
+            "p95": 65.46629199999734,
+            "min": 58.59770899999421,
+            "max": 90.69841700000688
+          },
+          "startupAndDashboardMs": {
+            "median": 136.68687550000323,
+            "p95": 141.6007919999829,
+            "min": 129.81275000001187,
+            "max": 290.63850000000093
+          },
+          "startupRssMiB": {
+            "median": 76.96875,
+            "p95": 77.09375,
+            "min": 76.828125,
+            "max": 77.09375
+          },
+          "loadedRssMiB": {
+            "median": 95.453125,
+            "p95": 95.515625,
+            "min": 95.296875,
+            "max": 95.59375
+          }
+        },
+        "samples": [
+          {
+            "startupMs": 199.94008299999405,
+            "dashboardMs": 90.69841700000688,
+            "startupAndDashboardMs": 290.63850000000093,
+            "startupRssMiB": 76.890625,
+            "loadedRssMiB": 95.390625
+          },
+          {
+            "startupMs": 75.32712500001071,
+            "dashboardMs": 64.27754199999617,
+            "startupAndDashboardMs": 139.60466700000688,
+            "startupRssMiB": 76.875,
+            "loadedRssMiB": 95.296875
+          },
+          {
+            "startupMs": 72.9065830000036,
+            "dashboardMs": 63.19166700000642,
+            "startupAndDashboardMs": 136.09825000001,
+            "startupRssMiB": 77.015625,
+            "loadedRssMiB": 95.484375
+          },
+          {
+            "startupMs": 72.80033299999195,
+            "dashboardMs": 59.433416000014404,
+            "startupAndDashboardMs": 132.23374900000636,
+            "startupRssMiB": 76.828125,
+            "loadedRssMiB": 95.328125
+          },
+          {
+            "startupMs": 74.5223330000008,
+            "dashboardMs": 63.31654200001503,
+            "startupAndDashboardMs": 137.83887500001583,
+            "startupRssMiB": 77.015625,
+            "loadedRssMiB": 95.4375
+          },
+          {
+            "startupMs": 73.47583300000406,
+            "dashboardMs": 60.2316249999858,
+            "startupAndDashboardMs": 133.70745799998986,
+            "startupRssMiB": 76.9375,
+            "loadedRssMiB": 95.484375
+          },
+          {
+            "startupMs": 74.30958400000236,
+            "dashboardMs": 63.7825840000005,
+            "startupAndDashboardMs": 138.09216800000286,
+            "startupRssMiB": 76.875,
+            "loadedRssMiB": 95.421875
+          },
+          {
+            "startupMs": 73.70454199999222,
+            "dashboardMs": 63.16008299999521,
+            "startupAndDashboardMs": 136.86462499998743,
+            "startupRssMiB": 77,
+            "loadedRssMiB": 95.5
+          },
+          {
+            "startupMs": 73.08141700000851,
+            "dashboardMs": 61.521000000007916,
+            "startupAndDashboardMs": 134.60241700001643,
+            "startupRssMiB": 76.96875,
+            "loadedRssMiB": 95.4375
+          },
+          {
+            "startupMs": 75.95033399999375,
+            "dashboardMs": 60.70783400000073,
+            "startupAndDashboardMs": 136.65816799999448,
+            "startupRssMiB": 76.96875,
+            "loadedRssMiB": 95.46875
+          },
+          {
+            "startupMs": 74.56124999999884,
+            "dashboardMs": 65.0280409999832,
+            "startupAndDashboardMs": 139.58929099998204,
+            "startupRssMiB": 76.921875,
+            "loadedRssMiB": 95.328125
+          },
+          {
+            "startupMs": 76.26116699998965,
+            "dashboardMs": 65.33962499999325,
+            "startupAndDashboardMs": 141.6007919999829,
+            "startupRssMiB": 76.921875,
+            "loadedRssMiB": 95.375
+          },
+          {
+            "startupMs": 73.52666599999066,
+            "dashboardMs": 64.74712499999441,
+            "startupAndDashboardMs": 138.27379099998507,
+            "startupRssMiB": 77.046875,
+            "loadedRssMiB": 95.484375
+          },
+          {
+            "startupMs": 72.9690830000036,
+            "dashboardMs": 63.15558400002192,
+            "startupAndDashboardMs": 136.1246670000255,
+            "startupRssMiB": 77.015625,
+            "loadedRssMiB": 95.390625
+          },
+          {
+            "startupMs": 74.03070800000569,
+            "dashboardMs": 59.01900000000023,
+            "startupAndDashboardMs": 133.04970800000592,
+            "startupRssMiB": 77.09375,
+            "loadedRssMiB": 95.515625
+          },
+          {
+            "startupMs": 72.49420800001826,
+            "dashboardMs": 63.24291699999594,
+            "startupAndDashboardMs": 135.7371250000142,
+            "startupRssMiB": 77.09375,
+            "loadedRssMiB": 95.515625
+          },
+          {
+            "startupMs": 73.94008400000166,
+            "dashboardMs": 65.46629199999734,
+            "startupAndDashboardMs": 139.406375999999,
+            "startupRssMiB": 77.0625,
+            "loadedRssMiB": 95.5
+          },
+          {
+            "startupMs": 71.21504100001766,
+            "dashboardMs": 58.59770899999421,
+            "startupAndDashboardMs": 129.81275000001187,
+            "startupRssMiB": 76.828125,
+            "loadedRssMiB": 95.375
+          },
+          {
+            "startupMs": 74.58437500000582,
+            "dashboardMs": 62.131208000006154,
+            "startupAndDashboardMs": 136.71558300001197,
+            "startupRssMiB": 77,
+            "loadedRssMiB": 95.59375
+          },
+          {
+            "startupMs": 74.34549999999581,
+            "dashboardMs": 60.313999999983935,
+            "startupAndDashboardMs": 134.65949999997974,
+            "startupRssMiB": 76.96875,
+            "loadedRssMiB": 95.46875
+          }
+        ]
+      },
+      "rust": {
+        "summary": {
+          "startupMs": {
+            "median": 6.311332999976003,
+            "p95": 6.776749999989988,
+            "min": 5.644916999997804,
+            "max": 7.264958000014303
+          },
+          "dashboardMs": {
+            "median": 12.807479499984765,
+            "p95": 16.316290999995545,
+            "min": 10.48995799999102,
+            "max": 16.852332999987993
+          },
+          "startupAndDashboardMs": {
+            "median": 19.15931250002177,
+            "p95": 22.700123999995412,
+            "min": 16.453749999956926,
+            "max": 23.62908299997798
+          },
+          "startupRssMiB": {
+            "median": 6.40625,
+            "p95": 6.421875,
+            "min": 6.390625,
+            "max": 6.421875
+          },
+          "loadedRssMiB": {
+            "median": 10.421875,
+            "p95": 10.53125,
+            "min": 10.328125,
+            "max": 10.546875
+          }
+        },
+        "samples": [
+          {
+            "startupMs": 6.385957999998936,
+            "dashboardMs": 12.098124999989523,
+            "startupAndDashboardMs": 18.48408299998846,
+            "startupRssMiB": 6.40625,
+            "loadedRssMiB": 10.421875
+          },
+          {
+            "startupMs": 6.397792000003392,
+            "dashboardMs": 13.280666000006022,
+            "startupAndDashboardMs": 19.678458000009414,
+            "startupRssMiB": 6.40625,
+            "loadedRssMiB": 10.421875
+          },
+          {
+            "startupMs": 6.439624999999069,
+            "dashboardMs": 11.17504099998041,
+            "startupAndDashboardMs": 17.61466599997948,
+            "startupRssMiB": 6.40625,
+            "loadedRssMiB": 10.328125
+          },
+          {
+            "startupMs": 5.964625000022352,
+            "dashboardMs": 13.161625000007916,
+            "startupAndDashboardMs": 19.126250000030268,
+            "startupRssMiB": 6.421875,
+            "loadedRssMiB": 10.421875
+          },
+          {
+            "startupMs": 5.851624999981141,
+            "dashboardMs": 10.602124999975786,
+            "startupAndDashboardMs": 16.453749999956926,
+            "startupRssMiB": 6.390625,
+            "loadedRssMiB": 10.515625
+          },
+          {
+            "startupMs": 5.933583999983966,
+            "dashboardMs": 14.217584000027273,
+            "startupAndDashboardMs": 20.15116800001124,
+            "startupRssMiB": 6.40625,
+            "loadedRssMiB": 10.453125
+          },
+          {
+            "startupMs": 6.31704099997296,
+            "dashboardMs": 10.48995799999102,
+            "startupAndDashboardMs": 16.80699899996398,
+            "startupRssMiB": 6.40625,
+            "loadedRssMiB": 10.53125
+          },
+          {
+            "startupMs": 5.644916999997804,
+            "dashboardMs": 11.014457999990555,
+            "startupAndDashboardMs": 16.65937499998836,
+            "startupRssMiB": 6.421875,
+            "loadedRssMiB": 10.5
+          },
+          {
+            "startupMs": 6.190665999980411,
+            "dashboardMs": 11.386583999992581,
+            "startupAndDashboardMs": 17.57724999997299,
+            "startupRssMiB": 6.40625,
+            "loadedRssMiB": 10.390625
+          },
+          {
+            "startupMs": 6.2841670000052545,
+            "dashboardMs": 12.657541999971727,
+            "startupAndDashboardMs": 18.94170899997698,
+            "startupRssMiB": 6.40625,
+            "loadedRssMiB": 10.40625
+          },
+          {
+            "startupMs": 6.305624999979045,
+            "dashboardMs": 16.30120899999747,
+            "startupAndDashboardMs": 22.606833999976516,
+            "startupRssMiB": 6.421875,
+            "loadedRssMiB": 10.359375
+          },
+          {
+            "startupMs": 6.412249999993946,
+            "dashboardMs": 11.853166999993846,
+            "startupAndDashboardMs": 18.265416999987792,
+            "startupRssMiB": 6.40625,
+            "loadedRssMiB": 10.359375
+          },
+          {
+            "startupMs": 7.264958000014303,
+            "dashboardMs": 12.089084000006551,
+            "startupAndDashboardMs": 19.354042000020854,
+            "startupRssMiB": 6.40625,
+            "loadedRssMiB": 10.515625
+          },
+          {
+            "startupMs": 6.383832999999868,
+            "dashboardMs": 16.316290999995545,
+            "startupAndDashboardMs": 22.700123999995412,
+            "startupRssMiB": 6.40625,
+            "loadedRssMiB": 10.4375
+          },
+          {
+            "startupMs": 5.900333000026876,
+            "dashboardMs": 11.25829200001317,
+            "startupAndDashboardMs": 17.158625000040047,
+            "startupRssMiB": 6.40625,
+            "loadedRssMiB": 10.390625
+          },
+          {
+            "startupMs": 6.7687499999883585,
+            "dashboardMs": 13.027541999996174,
+            "startupAndDashboardMs": 19.796291999984533,
+            "startupRssMiB": 6.40625,
+            "loadedRssMiB": 10.40625
+          },
+          {
+            "startupMs": 6.776749999989988,
+            "dashboardMs": 16.852332999987993,
+            "startupAndDashboardMs": 23.62908299997798,
+            "startupRssMiB": 6.390625,
+            "loadedRssMiB": 10.40625
+          },
+          {
+            "startupMs": 6.234958000015467,
+            "dashboardMs": 12.957416999997804,
+            "startupAndDashboardMs": 19.19237500001327,
+            "startupRssMiB": 6.421875,
+            "loadedRssMiB": 10.421875
+          },
+          {
+            "startupMs": 5.943582999985665,
+            "dashboardMs": 14.203084000007948,
+            "startupAndDashboardMs": 20.146666999993613,
+            "startupRssMiB": 6.40625,
+            "loadedRssMiB": 10.390625
+          },
+          {
+            "startupMs": 6.51866699999664,
+            "dashboardMs": 14.859165999980178,
+            "startupAndDashboardMs": 21.377832999976818,
+            "startupRssMiB": 6.40625,
+            "loadedRssMiB": 10.546875
+          }
+        ]
+      }
+    },
+    "parity": {
+      "identicalPairs": 20,
+      "sections": [
+        {
+          "section": "accounts",
+          "identicalPairs": 20
+        },
+        {
+          "section": "cashflow",
+          "identicalPairs": 20
+        },
+        {
+          "section": "spending",
+          "identicalPairs": 20
+        },
+        {
+          "section": "previous-spending",
+          "identicalPairs": 20
+        },
+        {
+          "section": "recurring",
+          "identicalPairs": 20
+        },
+        {
+          "section": "freshness",
+          "identicalPairs": 20
+        },
+        {
+          "section": "transactions",
+          "identicalPairs": 20
+        },
+        {
+          "section": "forecast",
+          "identicalPairs": 20
+        }
+      ]
+    }
+  }
+}
