@@ -1,15 +1,15 @@
-use crate::{
-    ToolResult,
-    backend_process::{BackendProcess, BackendTarget, load_bank_dashboard},
-    command_output,
-    loopback_fixture::{AkahuFixture, AkahuFixtureState, fixture_transaction},
-    project_root, tool_options,
-};
+use crate::backend_process::{BackendProcess, BackendTarget, load_bank_dashboard};
+use crate::loopback_fixture::{AkahuFixture, AkahuFixtureState, fixture_transaction};
+use crate::{ToolResult, command_output, project_root, tool_options};
 use chrono::{Datelike, Duration, NaiveDate, Utc};
 use serde::Serialize;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
-use std::{collections::BTreeMap, fs, path::PathBuf, process::Command, time::Instant};
+use std::collections::BTreeMap;
+use std::fs;
+use std::path::PathBuf;
+use std::process::Command;
+use std::time::Instant;
 pub(crate) fn benchmark_today() -> NaiveDate {
     Utc::now()
         .with_timezone(&chrono_tz::Pacific::Auckland)
@@ -17,12 +17,18 @@ pub(crate) fn benchmark_today() -> NaiveDate {
 }
 fn shift_month(date: NaiveDate, months: i32, day: Option<u32>) -> NaiveDate {
     let month = date.year() * 12 + date.month0() as i32 + months;
-    NaiveDate::from_ymd_opt(month.div_euclid(12), month.rem_euclid(12) as u32 + 1, 1).unwrap()
+    NaiveDate::from_ymd_opt(month.div_euclid(12), month.rem_euclid(12) as u32 + 1, 1)
+        .expect("Shifted benchmark month is within the supported calendar range")
         + Duration::days(day.unwrap_or(date.day()) as i64 - 1)
 }
 /// Build the same eight dashboard requests as the native app using Auckland calendar dates.
+///
+/// # Panics
+/// Panics if the historical date range extends beyond Chrono's supported calendar range.
 pub fn dashboard_paths(date: NaiveDate) -> Vec<String> {
-    let first = date.with_day(1).unwrap();
+    let first = date
+        .with_day(1)
+        .expect("A valid benchmark date has a first day of its month");
     let history = format!("from={}&to={date}", shift_month(date, -6, None));
     let current = format!("from={first}&to={date}&excludeTransfers=true");
     vec![
@@ -136,7 +142,12 @@ async fn synthetic_load(
     paths: &[String],
     fixture: &AkahuFixture,
 ) -> ToolResult<DashboardLoad> {
-    let calls = fixture.state.lock().unwrap().calls.len();
+    let calls = fixture
+        .state
+        .lock()
+        .expect("Akahu fixture state mutex is not poisoned")
+        .calls
+        .len();
     let started = Instant::now();
     let data = load_bank_dashboard(backend, "synthetic-benchmark-token", paths).await?;
     if data[0].as_array().map(Vec::len) != Some(3)
@@ -147,7 +158,13 @@ async fn synthetic_load(
     }
     Ok(DashboardLoad {
         elapsed_ms: started.elapsed().as_secs_f64() * 1000.0,
-        upstream_requests: fixture.state.lock().unwrap().calls.len() - calls,
+        upstream_requests: fixture
+            .state
+            .lock()
+            .expect("Akahu fixture state mutex is not poisoned")
+            .calls
+            .len()
+            - calls,
     })
 }
 /// Measure fresh backend processes and warm reloads against 3,000 fictional transactions.
@@ -213,7 +230,12 @@ pub async fn measure_backend(args: &[String]) -> ToolResult {
             });
         }
         let median_rss = summarize_samples(samples.iter().map(|s| s.loaded_rss_mi_b));
-        if max_rss.is_some_and(|limit| median_rss["median"].as_f64().unwrap() > limit) {
+        if max_rss.is_some_and(|limit| {
+            median_rss["median"]
+                .as_f64()
+                .expect("Nonempty benchmark samples produce a numeric median")
+                > limit
+        }) {
             return Err("Loaded backend RSS exceeds the requested limit.".into());
         }
         let first_calls: std::collections::BTreeSet<_> = samples

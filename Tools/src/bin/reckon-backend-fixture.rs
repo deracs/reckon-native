@@ -1,7 +1,5 @@
-use reckon_tools::{
-    ToolResult,
-    loopback_fixture::{FixtureResponse, LoopbackServer},
-};
+use reckon_tools::ToolResult;
+use reckon_tools::loopback_fixture::{FixtureResponse, LoopbackServer};
 use serde::Deserialize;
 use serde_json::json;
 use std::{fs, io};

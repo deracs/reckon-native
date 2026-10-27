@@ -5,15 +5,16 @@ use serde_json::{Value, json};
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 /// Match opposite decimal amounts across accounts within three days, keeping currencies separate.
-pub(crate) fn filter_bank_transfers(
-    transactions: &[BankTransaction],
+pub(crate) fn filter_bank_transfers<'transactions>(
+    transactions: impl IntoIterator<Item = &'transactions BankTransaction>,
     exclude: bool,
-) -> Vec<BankTransaction> {
+) -> Vec<&'transactions BankTransaction> {
+    let transactions: Vec<_> = transactions.into_iter().collect();
     if !exclude {
-        return transactions.to_vec();
+        return transactions;
     }
     let mut groups: HashMap<(String, String), Vec<&BankTransaction>> = HashMap::new();
-    for tx in transactions {
+    for &tx in &transactions {
         if !tx.amount.0.is_zero() {
             groups
                 .entry((
@@ -50,14 +51,13 @@ pub(crate) fn filter_bank_transfers(
         }
     }
     transactions
-        .iter()
+        .into_iter()
         .filter(|tx| !transfers.contains(&tx.id))
-        .cloned()
         .collect()
 }
 
 /// Sum category outflows without converting currencies; ties retain first-seen order.
-pub(crate) fn summarize_bank_spending(transactions: &[BankTransaction]) -> Value {
+pub(crate) fn summarize_bank_spending(transactions: &[&BankTransaction]) -> Value {
     let mut categories: Vec<(String, BigDecimal, usize)> = Vec::new();
     let mut indexes = HashMap::new();
     for tx in transactions.iter().filter(|tx| tx.amount.0.is_negative()) {
@@ -74,7 +74,7 @@ pub(crate) fn summarize_bank_spending(transactions: &[BankTransaction]) -> Value
 }
 
 /// Group signed income and outflows by UTC calendar month.
-pub(crate) fn summarize_bank_cashflow(transactions: &[BankTransaction]) -> Value {
+pub(crate) fn summarize_bank_cashflow(transactions: &[&BankTransaction]) -> Value {
     let mut months: BTreeMap<String, (BigDecimal, BigDecimal, usize)> = BTreeMap::new();
     for tx in transactions {
         let row = months
@@ -107,14 +107,25 @@ fn normalize_bank_description(description: &str) -> String {
         .join(" ")
 }
 
+/// Select recurring inflows or outflows without copying and negating transaction records.
+#[derive(Clone, Copy)]
+pub(crate) enum RecurringDirection {
+    Income,
+    Spending,
+}
+
 /// Detect stable merchant amounts and cadence; retain the original 25% variation threshold.
 pub(crate) fn detect_bank_recurring(
-    transactions: &[BankTransaction],
+    transactions: &[&BankTransaction],
     minimum: f64,
+    direction: RecurringDirection,
 ) -> Vec<RecurringCharge> {
     let mut groups: Vec<Vec<&BankTransaction>> = Vec::new();
     let mut indexes = HashMap::new();
-    for tx in transactions.iter().filter(|tx| tx.amount.0.is_negative()) {
+    for &tx in transactions.iter().filter(|tx| match direction {
+        RecurringDirection::Income => tx.amount.0.is_positive(),
+        RecurringDirection::Spending => tx.amount.0.is_negative(),
+    }) {
         let key = tx
             .merchant
             .clone()
@@ -202,6 +213,14 @@ pub(crate) fn detect_bank_recurring(
     results
 }
 
+#[derive(serde::Serialize)]
+struct ForecastEvent {
+    date: NaiveDate,
+    description: String,
+    amount: Money,
+    kind: &'static str,
+}
+
 /// Forecast detected bills and income over a bounded horizon, excluding discretionary spending.
 pub(crate) fn forecast_bank_cashflow(
     balance: BigDecimal,
@@ -213,24 +232,24 @@ pub(crate) fn forecast_bank_cashflow(
     // JS setUTCDate truncates fractional dates; the point loop includes floor(horizon).
     let horizon = days.clamp(1., 365.).floor() as i64;
     let end = today + Duration::days(horizon);
-    let mut events: Vec<(NaiveDate, String, Money, &str)> = Vec::new();
+    let mut events: Vec<ForecastEvent> = Vec::new();
     for (charges, kind) in [(recurring, "recurring_charge"), (income, "expected_income")] {
         for charge in charges {
             for date in charge.project_dates(today, end) {
-                events.push((
+                events.push(ForecastEvent {
                     date,
-                    charge.merchant.clone(),
-                    Money(if kind == "recurring_charge" {
+                    description: charge.merchant.clone(),
+                    amount: Money(if kind == "recurring_charge" {
                         -&charge.average_amount.0
                     } else {
                         charge.average_amount.0.clone()
                     }),
                     kind,
-                ));
+                });
             }
         }
     }
-    events.sort_by_key(|e| e.0);
+    events.sort_by_key(|event| event.date);
     let starting = balance.clone();
     let mut balance = balance;
     let mut total_income = zero_money();
@@ -240,8 +259,8 @@ pub(crate) fn forecast_bank_cashflow(
     let mut pointer = 0;
     for day in 0..=horizon {
         let date = today + Duration::days(day);
-        while pointer < events.len() && events[pointer].0 <= date {
-            let amount = &events[pointer].2.0;
+        while pointer < events.len() && events[pointer].date <= date {
+            let amount = &events[pointer].amount.0;
             balance += amount;
             if amount.is_negative() {
                 total_spending += amount.abs();
@@ -255,7 +274,7 @@ pub(crate) fn forecast_bank_cashflow(
             risks.push(json!({"date":date,"projectedBalance":Money(balance.clone()).rounded(),"reason":"Projected balance crosses zero"}));
         }
     }
-    json!({"startDate":today,"endDate":end,"startingBalance":Money(starting.clone()).rounded(),"endingBalance":Money(balance.clone()).rounded(),"netChange":Money(balance-starting).rounded(),"totalIncome":Money(total_income).rounded(),"totalSpending":Money(total_spending).rounded(),"points":points,"events":events.into_iter().map(|(date,description,amount,kind)| json!({"date":date,"description":description,"amount":amount,"kind":kind})).collect::<Vec<_>>(),"risks":risks})
+    json!({"startDate":today,"endDate":end,"startingBalance":Money(starting.clone()).rounded(),"endingBalance":Money(balance.clone()).rounded(),"netChange":Money(balance-starting).rounded(),"totalIncome":Money(total_income).rounded(),"totalSpending":Money(total_spending).rounded(),"points":points,"events":events,"risks":risks})
 }
 
 #[cfg(test)]
@@ -306,11 +325,14 @@ mod tests {
 
     #[test]
     fn decimal_sums_and_half_away_from_zero_rounding_remain_exact() {
-        let rows = vec![
+        let rows = [
             transaction("a", "a", "2024-03-01", "-0.1", "NZD"),
             transaction("b", "a", "2024-03-02", "-0.2", "NZD"),
         ];
-        assert_eq!(summarize_bank_spending(&rows)[0]["spent"], "0.3");
+        assert_eq!(
+            summarize_bank_spending(&rows.iter().collect::<Vec<_>>())[0]["spent"],
+            "0.3"
+        );
         assert_eq!(
             serde_json::to_value(Money(BigDecimal::from_str("-1.005").unwrap()).rounded()).unwrap(),
             "-1.01"
@@ -324,7 +346,11 @@ mod tests {
             .enumerate()
             .map(|(i, date)| transaction(&i.to_string(), "a", date, "-25.5", "NZD"))
             .collect::<Vec<_>>();
-        let recurring = detect_bank_recurring(&rows, 3.);
+        let recurring = detect_bank_recurring(
+            &rows.iter().collect::<Vec<_>>(),
+            3.,
+            RecurringDirection::Spending,
+        );
         assert_eq!(recurring.len(), 1);
         let today = NaiveDate::from_ymd_opt(2024, 3, 1).unwrap();
         let forecast = forecast_bank_cashflow(BigDecimal::from(100), today, 14., &recurring, &[]);
@@ -332,6 +358,38 @@ mod tests {
         assert_eq!(forecast["events"][1]["date"], "2024-03-14");
         assert_eq!(forecast["endingBalance"], "49");
         assert_eq!(forecast["points"].as_array().unwrap().len(), 15);
+    }
+
+    #[test]
+    fn borrowed_recurring_income_and_bills_keep_forecast_amounts_and_wire_fields() {
+        let rows = [
+            transaction("bill_one", "a", "2024-02-15", "-25.5", "NZD"),
+            transaction("bill_two", "a", "2024-02-22", "-25.5", "NZD"),
+            transaction("bill_three", "a", "2024-02-29", "-25.5", "NZD"),
+            transaction("pay_one", "a", "2024-02-23", "1000", "NZD"),
+            transaction("pay_two", "a", "2024-03-01", "1000", "NZD"),
+        ];
+        let borrowed: Vec<_> = rows.iter().collect();
+        let bills = detect_bank_recurring(&borrowed, 3., RecurringDirection::Spending);
+        let income = detect_bank_recurring(&borrowed, 2., RecurringDirection::Income);
+        assert_eq!(bills[0].occurrences, 3);
+        assert_eq!(income[0].occurrences, 2);
+        let today = NaiveDate::from_ymd_opt(2024, 3, 2).expect("Valid fixture date");
+        let forecast = forecast_bank_cashflow(BigDecimal::from(100), today, 7., &bills, &income);
+        assert_eq!(
+            forecast["events"][0],
+            json!({"date":"2024-03-07","description":"Fixture bill","amount":"-25.5","kind":"recurring_charge"})
+        );
+        assert_eq!(
+            forecast["events"][1],
+            json!({"date":"2024-03-08","description":"Fixture bill","amount":"1000","kind":"expected_income"})
+        );
+        assert_eq!(forecast["endingBalance"], "1074.5");
+        assert_eq!(
+            rows[3].amount.0,
+            BigDecimal::from(1000),
+            "Income detection must not mutate source amounts"
+        );
     }
 
     #[test]

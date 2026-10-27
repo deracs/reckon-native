@@ -1,12 +1,10 @@
 use crate::{ToolResult, command_output, project_root, tool_options};
 use regex::bytes::Regex;
 use serde_json::json;
-use std::{
-    collections::HashMap,
-    env, fs,
-    path::{Path, PathBuf},
-    process::Command,
-};
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
+use std::process::Command;
+use std::{env, fs};
 use zeroize::Zeroizing;
 
 fn parse_env(contents: &str) -> ToolResult<HashMap<String, String>> {

@@ -8,18 +8,15 @@ mod native_bank_server;
 
 use akahu_bank_data::AkahuBankData;
 use backend_handshake::BackendHandshake;
-use hyper::{server::conn::http1, service::service_fn};
+use hyper::server::conn::http1;
+use hyper::service::service_fn;
 use hyper_util::rt::TokioIo;
-use std::{
-    io::{BufRead, Read, Write},
-    sync::Arc,
-    time::Duration,
-};
-use tokio::{
-    net::TcpListener,
-    signal::unix::{SignalKind, signal},
-    sync::oneshot,
-};
+use std::io::{BufRead, Read, Write};
+use std::sync::Arc;
+use std::time::Duration;
+use tokio::net::TcpListener;
+use tokio::signal::unix::{SignalKind, signal};
+use tokio::sync::oneshot;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
@@ -48,11 +45,11 @@ async fn main() {
     let Ok(mut interrupt) = signal(SignalKind::interrupt()) else {
         fail_startup();
     };
-    let parent = unsafe { libc::getppid() };
+    let parent = std::os::unix::process::parent_id();
     let parent_exit = async {
         loop {
             tokio::time::sleep(Duration::from_secs(1)).await;
-            let now = unsafe { libc::getppid() };
+            let now = std::os::unix::process::parent_id();
             if now == 1 || now != parent {
                 return;
             }

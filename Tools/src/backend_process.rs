@@ -1,16 +1,12 @@
 use crate::{ToolResult, command_output};
 use serde_json::Value;
-use std::{
-    path::{Path, PathBuf},
-    process::{Command, Stdio},
-    time::{Duration, Instant},
-};
+use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
+use std::time::{Duration, Instant};
 use tempfile::TempDir;
-use tokio::{
-    io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader},
-    process::Child,
-    task::JoinHandle,
-};
+use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
+use tokio::process::Child;
+use tokio::task::JoinHandle;
 
 /// Select a standalone backend, or an explicitly supplied historical TypeScript bundle.
 #[derive(Clone)]

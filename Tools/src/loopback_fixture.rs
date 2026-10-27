@@ -1,18 +1,14 @@
 use crate::ToolResult;
 use serde_json::{Value, json};
-use std::{
-    collections::{BTreeMap, VecDeque},
-    future::Future,
-    pin::Pin,
-    sync::{Arc, Mutex},
-    time::Duration,
-};
-use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
-    net::TcpListener,
-    sync::Notify,
-    task::{JoinHandle, JoinSet},
-};
+use std::collections::{BTreeMap, VecDeque};
+use std::future::Future;
+use std::pin::Pin;
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::TcpListener;
+use tokio::sync::Notify;
+use tokio::task::{JoinHandle, JoinSet};
 
 /// A loopback-only HTTP request used by synthetic fixtures and in-memory replay.
 #[derive(Clone)]
@@ -31,7 +27,8 @@ impl FixtureResponse {
     pub fn json(value: Value) -> Self {
         Self {
             status: 200,
-            body: serde_json::to_vec(&value).unwrap(),
+            body: serde_json::to_vec(&value)
+                .expect("A JSON value serializes into an in-memory byte vector"),
             headers: vec![("Content-Type".into(), "application/json".into())],
         }
     }
@@ -221,7 +218,9 @@ impl AkahuFixture {
             );
             Box::pin(async move {
                 let (hold, latency, response) = {
-                    let mut state = state.lock().unwrap();
+                    let mut state = state
+                        .lock()
+                        .expect("Akahu fixture state mutex is not poisoned");
                     state.credentials_valid &= request.headers.get("authorization")
                         == Some(&format!("Bearer {user}"))
                         && request.headers.get("x-akahu-id") == Some(&app);

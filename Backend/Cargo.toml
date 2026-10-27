@@ -13,7 +13,6 @@ futures-util = "0.3"
 http-body-util = "0.1"
 hyper = { version = "1", features = ["server", "http1"] }
 hyper-util = { version = "0.1", features = ["tokio"] }
-libc = "0.2"
 percent-encoding = "2"
 reqwest = { version = "0.12", default-features = false, features = ["json", "native-tls"] }
 ryu-js = "1"

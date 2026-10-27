@@ -1,13 +1,12 @@
 use crate::{ToolResult, command_output, project_root};
-use base64::{Engine, engine::general_purpose::STANDARD};
+use base64::Engine;
+use base64::engine::general_purpose::STANDARD;
 use ed25519_dalek::SigningKey;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use std::{
-    env, fs,
-    path::{Path, PathBuf},
-    process::Command,
-};
+use std::path::{Path, PathBuf};
+use std::process::Command;
+use std::{env, fs};
 use zeroize::Zeroizing;
 const REPOSITORY: &str = "deracs/reckon-native";
 const ACCOUNT: &str = "nz.reckon.native.update-signing";

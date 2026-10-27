@@ -1,8 +1,10 @@
-use base64::{Engine, engine::general_purpose::STANDARD};
+use base64::Engine;
+use base64::engine::general_purpose::STANDARD;
 use reckon_tools::release_updates::{
     SparkleSigner, UpdateMetadata, update_feed_xml, validate_update_metadata,
 };
-use std::{fs, io::Read};
+use std::fs;
+use std::io::Read;
 fn test_signer() -> SparkleSigner {
     let mut bytes = [0u8; 32];
     fs::File::open("/dev/urandom")

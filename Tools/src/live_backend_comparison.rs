@@ -1,30 +1,22 @@
-use crate::{
-    ToolResult,
-    backend_benchmark::{
-        backend_binary_metadata, benchmark_environment, benchmark_today, bounded_runs,
-        dashboard_paths, summarize_samples,
-    },
-    backend_process::{BackendProcess, BackendTarget, load_bank_dashboard},
-    command_output,
-    loopback_fixture::{FixtureResponse, LoopbackServer},
-    project_root, tool_options,
+use crate::backend_benchmark::{
+    backend_binary_metadata, benchmark_environment, benchmark_today, bounded_runs, dashboard_paths,
+    summarize_samples,
 };
+use crate::backend_process::{BackendProcess, BackendTarget, load_bank_dashboard};
+use crate::loopback_fixture::{FixtureResponse, LoopbackServer};
+use crate::{ToolResult, command_output, project_root, tool_options};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use std::{
-    collections::HashMap,
-    fs,
-    io::Write,
-    os::unix::fs::{OpenOptionsExt, PermissionsExt},
-    path::{Path, PathBuf},
-    process::Command,
-    sync::{
-        Arc, Mutex,
-        atomic::{AtomicBool, Ordering},
-    },
-    time::Instant,
-};
+use std::collections::HashMap;
+use std::fs;
+use std::io::Write;
+use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
+use std::path::{Path, PathBuf};
+use std::process::Command;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
+use std::time::Instant;
 use zeroize::Zeroizing;
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -189,7 +181,7 @@ async fn snapshot_proxy(source: &str) -> ToolResult<BankSnapshot> {
             if !recording.load(Ordering::Acquire) {
                 return pages
                     .lock()
-                    .unwrap()
+                    .expect("Bank snapshot page mutex is not poisoned")
                     .get(&key)
                     .map(|body| FixtureResponse {
                         status: 200,
@@ -219,7 +211,7 @@ async fn snapshot_proxy(source: &str) -> ToolResult<BankSnapshot> {
             };
             pages
                 .lock()
-                .unwrap()
+                .expect("Bank snapshot page mutex is not poisoned")
                 .insert(key, Zeroizing::new(body.to_vec()));
             FixtureResponse {
                 status: 200,

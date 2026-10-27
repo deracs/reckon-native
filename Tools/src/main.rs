@@ -1,5 +1,6 @@
 use reckon_tools::{ToolResult, project_root, run_visible, tool_options};
-use std::{path::PathBuf, process::Command};
+use std::path::PathBuf;
+use std::process::Command;
 
 #[tokio::main]
 async fn main() {

@@ -1,22 +1,19 @@
-use crate::{
-    akahu_bank_data::AkahuBankData,
-    backend_handshake::BackendSecret,
-    bank_calendar::{add_bank_months, bank_today, parse_bank_date},
-    bank_derivations::{
-        detect_bank_recurring, filter_bank_transfers, forecast_bank_cashflow,
-        summarize_bank_cashflow, summarize_bank_spending,
-    },
-    bank_models::AccountId,
+use crate::akahu_bank_data::AkahuBankData;
+use crate::backend_handshake::BackendSecret;
+use crate::bank_calendar::{add_bank_months, bank_today, parse_bank_date};
+use crate::bank_derivations::{
+    RecurringDirection, detect_bank_recurring, filter_bank_transfers, forecast_bank_cashflow,
+    summarize_bank_cashflow, summarize_bank_spending,
 };
-use bigdecimal::{BigDecimal, Signed};
+use crate::bank_models::AccountId;
+use bigdecimal::BigDecimal;
 use bytes::Bytes;
 use http_body_util::Full;
-use hyper::{Request, Response, StatusCode, body::Incoming};
+use hyper::body::Incoming;
+use hyper::{Request, Response, StatusCode};
 use serde_json::{Value, json};
-use std::{
-    collections::{HashMap, HashSet},
-    convert::Infallible,
-};
+use std::collections::{HashMap, HashSet};
+use std::convert::Infallible;
 use subtle::ConstantTimeEq;
 
 struct BankQuery(HashMap<String, String>);
@@ -60,6 +57,16 @@ impl BankQuery {
         }
     }
 }
+struct BankRequestQuery {
+    filters: BankQuery,
+    from: Option<chrono::NaiveDate>,
+    to: Option<chrono::NaiveDate>,
+    exclude_transfers: bool,
+    limit: f64,
+    minimum_occurrences: f64,
+    forecast_days: f64,
+}
+
 fn bank_response(status: StatusCode, text: &str) -> Response<Full<Bytes>> {
     Response::builder()
         .status(status)
@@ -150,9 +157,26 @@ pub(crate) async fn serve_bank_request(
         } else {
             30.
         };
-        Ok::<_, ()>((query, from, to, exclude, limit, minimum, days))
+        Ok::<_, ()>(BankRequestQuery {
+            filters: query,
+            from,
+            to,
+            exclude_transfers: exclude,
+            limit,
+            minimum_occurrences: minimum,
+            forecast_days: days,
+        })
     })();
-    let Ok((query, from, to, exclude, limit, minimum, days)) = parsed else {
+    let Ok(BankRequestQuery {
+        filters: query,
+        from,
+        to,
+        exclude_transfers: exclude,
+        limit,
+        minimum_occurrences: minimum,
+        forecast_days: days,
+    }) = parsed
+    else {
         return Ok(bank_response(
             StatusCode::BAD_REQUEST,
             "Invalid bank query.",
@@ -190,18 +214,9 @@ pub(crate) async fn serve_bank_request(
             let history = bank
                 .fetch_transactions(Some(add_bank_months(today, -6)), Some(today), snapshot)
                 .await?;
-            let cleaned: Vec<_> = filter_bank_transfers(&history, exclude)
+            let cleaned: Vec<_> = filter_bank_transfers(history.iter(), exclude)
                 .into_iter()
                 .filter(|tx| ids.contains(&tx.account_id))
-                .collect();
-            let incoming: Vec<_> = cleaned
-                .iter()
-                .filter(|tx| tx.amount.0.is_positive())
-                .map(|tx| {
-                    let mut tx = tx.clone();
-                    tx.amount.0 = -tx.amount.0;
-                    tx
-                })
                 .collect();
             return Ok(forecast_bank_cashflow(
                 accounts
@@ -210,16 +225,20 @@ pub(crate) async fn serve_bank_request(
                     .sum::<BigDecimal>(),
                 today,
                 days,
-                &detect_bank_recurring(&cleaned, 3.),
-                &detect_bank_recurring(&incoming, 2.),
+                &detect_bank_recurring(&cleaned, 3., RecurringDirection::Spending),
+                &detect_bank_recurring(&cleaned, 2., RecurringDirection::Income),
             ));
         }
         let history = bank.fetch_transactions(from, to, snapshot).await?;
-        let mut cleaned = filter_bank_transfers(&history, exclude);
+        let mut cleaned = filter_bank_transfers(history.iter(), exclude);
         Ok(match path {
             "/spending" => summarize_bank_spending(&cleaned),
             "/cashflow" => summarize_bank_cashflow(&cleaned),
-            "/recurring" => json!(detect_bank_recurring(&cleaned, minimum)),
+            "/recurring" => json!(detect_bank_recurring(
+                &cleaned,
+                minimum,
+                RecurringDirection::Spending
+            )),
             "/transactions" => {
                 let search = query
                     .0

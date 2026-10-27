@@ -6,19 +6,17 @@ pub mod loopback_fixture;
 pub mod release_privacy;
 pub mod release_updates;
 
-use std::{
-    error::Error,
-    io::Write,
-    path::{Path, PathBuf},
-    process::{Command, Stdio},
-};
+use std::error::Error;
+use std::io::Write;
+use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
 pub type ToolResult<T = ()> = Result<T, Box<dyn Error + Send + Sync>>;
 
 /// Locate repository files without depending on the caller's working directory.
 pub fn project_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
-        .unwrap()
+        .expect("Tools manifest directory has a repository parent")
         .to_path_buf()
 }
 
@@ -34,11 +32,16 @@ pub fn command_output(command: &mut Command, input: Option<&[u8]>) -> ToolResult
         .stderr(Stdio::piped())
         .spawn()?;
     if let Some(input) = input {
-        child
+        let delivery = child
             .stdin
             .take()
-            .ok_or("Command stdin unavailable")?
-            .write_all(input)?;
+            .ok_or_else(|| std::io::Error::other("Command stdin unavailable"))
+            .and_then(|mut pipe| pipe.write_all(input));
+        if let Err(error) = delivery {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(error.into());
+        }
     }
     let result = child.wait_with_output()?;
     if !result.status.success() {

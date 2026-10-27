@@ -1,18 +1,14 @@
-use crate::{
-    akahu_wire::{AkahuAccount, AkahuPage, AkahuPendingTransaction, AkahuTransaction},
-    backend_handshake::BackendHandshake,
-    bank_calendar::{add_bank_months, bank_today},
-    bank_models::BankTransaction,
-};
+use crate::akahu_wire::{AkahuAccount, AkahuPage, AkahuPendingTransaction, AkahuTransaction};
+use crate::backend_handshake::BackendHandshake;
+use crate::bank_calendar::{add_bank_months, bank_today};
+use crate::bank_models::BankTransaction;
 use chrono::{Datelike, Duration as BankDuration, NaiveDate, Utc};
 use futures_util::{StreamExt, TryStreamExt, stream};
 use reqwest::{Client, StatusCode};
 use serde::de::DeserializeOwned;
-use std::{
-    collections::VecDeque,
-    sync::Arc,
-    time::{Duration, Instant},
-};
+use std::collections::VecDeque;
+use std::sync::Arc;
+use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
 
 /// Safe failure tags never contain request URLs, credentials, or source bodies.
@@ -43,6 +39,22 @@ struct BankSnapshot {
     transactions: Vec<BankTransaction>,
 }
 type SnapshotSlot = Arc<BankCache<BankSnapshot>>;
+
+/// A transaction view retains shared snapshot storage while iterators borrow its records.
+pub(crate) struct BankTransactionView {
+    snapshot: Arc<BankSnapshot>,
+    range: Option<std::ops::RangeInclusive<NaiveDate>>,
+}
+impl BankTransactionView {
+    /// Borrow records in the requested range; direct source reads preserve pending-row behavior.
+    pub(crate) fn iter(&self) -> impl Iterator<Item = &BankTransaction> {
+        self.snapshot.transactions.iter().filter(|transaction| {
+            self.range
+                .as_ref()
+                .is_none_or(|range| range.contains(&transaction.date))
+        })
+    }
+}
 
 /// Akahu reads own pagination, bounded retries and cancellable single-flight caches.
 pub(crate) struct AkahuBankData {
@@ -134,10 +146,15 @@ impl AkahuBankData {
                     Err(_) if attempt == 5 => return Err(BankReadError::Transport),
                     Err(_) => None,
                 };
-                // Jitter is supplied by OS entropy, without a persistent RNG or worker pool.
+                // Retry jitter needs no persistent RNG state or worker pool. OS read failures
+                // use the low end of the jitter range; no credential depends on this byte.
+                use std::io::Read;
                 let mut entropy = [0u8; 1];
-                unsafe {
-                    libc::getentropy(entropy.as_mut_ptr().cast(), entropy.len());
+                if std::fs::File::open("/dev/urandom")
+                    .and_then(|mut source| source.read_exact(&mut entropy))
+                    .is_err()
+                {
+                    entropy[0] = 0;
                 }
                 let backoff = Duration::from_secs_f64(
                     0.5 * 2f64.powi(attempt) * (0.8 + 0.4 * f64::from(entropy[0]) / 255.),
@@ -226,16 +243,33 @@ impl AkahuBankData {
             .await?;
         Ok(chunks.into_iter().flatten().collect())
     }
+    async fn read_transaction_view(
+        &self,
+        from: NaiveDate,
+        to: NaiveDate,
+    ) -> Result<BankTransactionView, BankReadError> {
+        let transactions = self.read_transactions(from, to).await?;
+        Ok(BankTransactionView {
+            snapshot: Arc::new(BankSnapshot {
+                from,
+                to,
+                transactions,
+            }),
+            range: None,
+        })
+    }
+
+    /// Reuse shared snapshot records while retaining single-flight source reads.
     pub(crate) async fn fetch_transactions(
         &self,
         from: Option<NaiveDate>,
         to: Option<NaiveDate>,
         snapshot: Option<&str>,
-    ) -> Result<Vec<BankTransaction>, BankReadError> {
+    ) -> Result<BankTransactionView, BankReadError> {
         let from = from.unwrap_or_else(|| (Utc::now() - BankDuration::days(30)).date_naive());
         let to = to.unwrap_or_else(bank_today);
         let Some(snapshot) = snapshot else {
-            return self.read_transactions(from, to).await;
+            return self.read_transaction_view(from, to).await;
         };
         let slot = {
             let mut snapshots = self.snapshots.lock().await;
@@ -254,7 +288,7 @@ impl AkahuBankData {
                         snapshots.remove(index);
                     } else {
                         drop(snapshots);
-                        return self.read_transactions(from, to).await;
+                        return self.read_transaction_view(from, to).await;
                     }
                 }
                 let slot = Arc::new(Mutex::new(None));
@@ -263,33 +297,91 @@ impl AkahuBankData {
             }
         };
         let mut cache = slot.lock().await;
-        if !cache
-            .as_ref()
-            .is_some_and(|(saved, _)| saved.elapsed() < Duration::from_secs(60))
+        let snapshot = if let Some((saved, snapshot)) = cache.as_ref()
+            && saved.elapsed() < Duration::from_secs(60)
         {
+            Arc::clone(snapshot)
+        } else {
             *cache = None;
             let today = bank_today();
             let start = add_bank_months(today.with_day(1).expect("Bank month has a first day"), -6);
             let transactions = self.read_transactions(start, today).await?;
-            *cache = Some((
-                Instant::now(),
-                Arc::new(BankSnapshot {
-                    from: start,
-                    to: today,
-                    transactions,
-                }),
-            ));
-        }
-        let snapshot = cache.as_ref().expect("Bank snapshot was loaded").1.clone();
+            let snapshot = Arc::new(BankSnapshot {
+                from: start,
+                to: today,
+                transactions,
+            });
+            *cache = Some((Instant::now(), Arc::clone(&snapshot)));
+            snapshot
+        };
         drop(cache);
         if from < snapshot.from || to > snapshot.to {
-            return self.read_transactions(from, to).await;
+            return self.read_transaction_view(from, to).await;
         }
-        Ok(snapshot
-            .transactions
+        Ok(BankTransactionView {
+            snapshot,
+            range: Some(from..=to),
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::bank_models::{AccountId, BankTransactionSource, Money, TransactionId};
+
+    #[test]
+    fn transaction_views_share_records_and_preserve_direct_pending_selection() {
+        let date = NaiveDate::from_ymd_opt(2024, 3, 2).expect("Valid fixture date");
+        let rows = [date - BankDuration::days(1), date].map(|date| BankTransaction {
+            source: BankTransactionSource::Pending,
+            id: TransactionId(format!("fixture_{date}")),
+            account_id: AccountId("fixture_account".into()),
+            date,
+            description: "Pending fixture".into(),
+            merchant: None,
+            merchant_logo: None,
+            category: None,
+            amount: Money::default(),
+            currency: "NZD".into(),
+        });
+        let snapshot = Arc::new(BankSnapshot {
+            from: date,
+            to: date,
+            transactions: rows.into(),
+        });
+        let filtered = BankTransactionView {
+            snapshot: Arc::clone(&snapshot),
+            range: Some(date..=date),
+        };
+        let direct = BankTransactionView {
+            snapshot: Arc::clone(&snapshot),
+            range: None,
+        };
+        let record = filtered
             .iter()
-            .filter(|tx| tx.date >= from && tx.date <= to)
-            .cloned()
-            .collect())
+            .next()
+            .expect("One row is inside the date range");
+        assert!(
+            std::ptr::eq(record, &snapshot.transactions[1]),
+            "Range selection must borrow the cached record"
+        );
+        assert_eq!(filtered.iter().count(), 1);
+        assert_eq!(
+            direct.iter().count(),
+            2,
+            "Direct source reads retain pending records outside the posted range"
+        );
+        drop(snapshot);
+        assert!(std::ptr::eq(
+            filtered
+                .iter()
+                .next()
+                .expect("View owns its shared storage"),
+            direct
+                .iter()
+                .nth(1)
+                .expect("Direct view shares the same record")
+        ));
     }
 }

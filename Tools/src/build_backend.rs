@@ -1,7 +1,10 @@
 use crate::{ToolResult, command_output, project_root, run_visible};
 use regex::Regex;
 use serde_json::Value;
-use std::{collections::HashSet, env, fs, path::Path, process::Command};
+use std::collections::HashSet;
+use std::path::Path;
+use std::process::Command;
+use std::{env, fs};
 
 /// Build the distributable backend with source paths remapped and dependency license notices.
 pub fn build_backend() -> ToolResult {
@@ -80,7 +83,10 @@ pub fn build_backend() -> ToolResult {
         let mut licenses: Vec<_> = fs::read_dir(directory)?
             .filter_map(Result::ok)
             .map(|entry| entry.path())
-            .filter(|path| license_pattern.is_match(&path.file_name().unwrap().to_string_lossy()))
+            .filter(|path| {
+                path.file_name()
+                    .is_some_and(|name| license_pattern.is_match(&name.to_string_lossy()))
+            })
             .collect();
         if let Some(file) = dependency["license_file"].as_str() {
             let file = directory.join(file);
