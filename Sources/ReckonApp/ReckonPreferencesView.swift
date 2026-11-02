@@ -140,9 +140,7 @@ struct ReckonPreferencesView: View {
         VStack(alignment: .leading, spacing: 16) {
             settingsHeading("Balance limits", explanation: "Alert when an account crosses from at or above its limit to below it. First observations and repeated below-limit readings do not alert. Leave a limit blank to turn it off, then save.")
             Text("Get an alert when a balance falls below its limit.").font(.caption).foregroundStyle(.secondary)
-            ForEach(store.dashboard?.accounts ?? []) { account in
-                alertAmountRow(account, amounts: $limits, purpose: "balance limit")
-            }
+            bankAlertAmountRows(amounts: $limits, purpose: "balance limit")
             if store.dashboard?.accounts.isEmpty != false { noAccounts }
             if limits.filter({ !$0.value.isEmpty }) != savedLimits {
                 HStack {
@@ -160,9 +158,7 @@ struct ReckonPreferencesView: View {
         VStack(alignment: .leading, spacing: 16) {
             settingsHeading("Balance targets", explanation: "Alert when an account crosses from below its target to at or above it. It can alert again after falling below the target. Leave blank to turn it off.")
             Text("Get an alert when a balance reaches its target.").font(.caption).foregroundStyle(.secondary)
-            ForEach(store.dashboard?.accounts ?? []) { account in
-                alertAmountRow(account, amounts: $targets, purpose: "balance target")
-            }
+            bankAlertAmountRows(amounts: $targets, purpose: "balance target")
             if store.dashboard?.accounts.isEmpty != false { noAccounts }
             Divider()
             settingsHeading("New deposits", explanation: "Alert for newly seen NZD deposits at or above this amount. Detected transfers are excluded. The first successful activity fetch sets a baseline. Activity is limited to the latest 100 transactions, and late imports may appear as new.")
@@ -291,14 +287,38 @@ struct ReckonPreferencesView: View {
         depositThreshold = savedDepositThreshold
     }
 
-    private func alertAmountRow(_ account: BankAccount, amounts: Binding<[String: String]>, purpose: String) -> some View {
+    private func bankAlertAmountRows(amounts: Binding<[String: String]>, purpose: String) -> some View {
+        let banks = BankAccountGroup.groupAccounts(store.dashboard?.accounts ?? [])
+        return VStack(alignment: .leading, spacing: 18) {
+            ForEach(banks) { bank in
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack(spacing: 10) {
+                        if let account = bank.logoAccount { BankLogoView(account: account) }
+                        Text(bank.name).font(.callout.weight(.semibold))
+                        Spacer(minLength: 8)
+                        Text("\(bank.accounts.count) \(bank.accounts.count == 1 ? "account" : "accounts")")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    VStack(spacing: 14) {
+                        ForEach(bank.accounts) { account in
+                            alertAmountRow(account, bankName: bank.name, amounts: amounts, purpose: purpose)
+                        }
+                    }
+                    .padding(.leading, 42)
+                }
+                if bank.id != banks.last?.id { Divider() }
+            }
+        }
+    }
+
+    private func alertAmountRow(_ account: BankAccount, bankName: String, amounts: Binding<[String: String]>, purpose: String) -> some View {
         HStack {
             Text(account.name).font(.callout).lineLimit(2)
             Spacer(minLength: 12)
             Text(account.currency).font(.caption).foregroundStyle(.secondary)
             TextField("Off", text: Binding(get: { amounts.wrappedValue[account.id] ?? "" }, set: { amounts.wrappedValue[account.id] = $0 }))
                 .textFieldStyle(.roundedBorder).frame(width: 88)
-                .accessibilityLabel("\(account.name) \(purpose) in \(account.currency)")
+                .accessibilityLabel("\(bankName), \(account.name) \(purpose) in \(account.currency)")
         }
     }
 

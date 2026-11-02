@@ -39,12 +39,15 @@ The installed app also supports `--launch-at-login-status`, `--enable-launch-at-
 cargo reckon check
 swift run -Xswiftc -warnings-as-errors ReckonChecks
 swift run -Xswiftc -warnings-as-errors ReckonImageChecks
+./scripts/check-window-lifecycle.sh
 cargo reckon test
 ```
 
 Build the app before the checks. The Swift checks exercise the bundled process. The integration checks use a local Akahu fixture and run the bundled backend from a temporary directory. They require no real credentials or bank connection.
 
 The Swift checks use an executable runner because the standalone Command Line Tools omit the Swift Testing and XCTest modules.
+
+The window lifecycle checks require a logged-in macOS desktop. They drive the app's actual menu-bar and Settings actions with sample data, without reading credentials or starting a backend. They cover reopening the dropdown while Settings is visible, inactive, hidden, minimized, or closed, and restoring the existing Settings window.
 
 ## Rust style
 

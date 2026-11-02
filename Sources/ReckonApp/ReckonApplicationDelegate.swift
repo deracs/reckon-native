@@ -91,12 +91,12 @@ final class ReckonApplicationDelegate: NSObject, NSApplicationDelegate, NSWindow
         }
     }
 
+    /// Menu-bar, shortcut, and reopen actions show the dashboard even when Settings is open.
     private func openDashboard(inPreview: Bool = false) {
         guard unlockTask == nil else { return }
         appLock.expireSessionIfNeeded()
         if appLock.isUnlocked {
-            if let settingsWindow, settingsWindow.isVisible { settingsWindow.makeKeyAndOrderFront(nil) }
-            else { showDashboard(inPreview: inPreview) }
+            showDashboard(inPreview: inPreview)
             return
         }
         popover.performClose(nil)
@@ -159,7 +159,7 @@ final class ReckonApplicationDelegate: NSObject, NSApplicationDelegate, NSWindow
         popover.contentViewController?.view.window?.makeKey()
     }
 
-    private func showSettings() {
+    @objc private func showSettings() {
         guard appLock.isUnlocked else { return }
         if let settingsWindow {
             popover.performClose(nil)
