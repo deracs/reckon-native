@@ -1,77 +1,113 @@
-import AppKit
 import SwiftUI
 
 struct ReckonConnectionView: View {
     @ObservedObject var store: BankDashboardStore
-    let closeConnection: () -> Void
+    let connectionUpdated: () -> Void
     @State private var appToken = ""
     @State private var userToken = ""
-    @State private var launchAtLogin = ReckonLoginItem.isEnabled
-    @State private var loginMessage: String?
+    @State private var editingTokens = false
+    @State private var confirmingDisconnect = false
+
+    private var hasConnection: Bool { store.isConfigured || store.isDemo }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Connect Akahu").font(.system(.title, design: .serif).weight(.semibold))
-                Text("Reckon runs its own backend. Add your personal Akahu tokens to read your accounts.")
+        VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(spacing: 12) {
+                    Image(systemName: "link")
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundStyle(ReckonAppearance.accent)
+                        .frame(width: 44, height: 44)
+                        .background(ReckonAppearance.accent.opacity(0.08), in: RoundedRectangle(cornerRadius: 14))
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Akahu").font(.headline)
+                        Label(store.isDemo ? "Sample connection" : store.isConfigured ? "Connection saved" : "Not connected",
+                              systemImage: hasConnection ? "checkmark.circle.fill" : "circle.dashed")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                }
+                Text(hasConnection ? "Your tokens stay in your Mac’s Keychain." : "Connect Akahu to read your accounts.")
                     .font(.callout).foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                if hasConnection && !editingTokens {
+                    Button("Change tokens…") { editingTokens = true }
+                }
+                if !hasConnection || editingTokens { tokenFields }
             }
-            VStack(alignment: .leading, spacing: 8) {
-                Text("App ID token").font(.headline)
-                SecureField(store.isConfigured ? "Leave blank to keep the saved token" : "AKAHU_APP_TOKEN", text: $appToken)
-                    .autocorrectionDisabled().accessibilityIdentifier("akahu-app-token")
-            }
-            VStack(alignment: .leading, spacing: 8) {
-                Text("User access token").font(.headline)
-                SecureField(store.isConfigured ? "Leave blank to keep the saved token" : "AKAHU_USER_TOKEN", text: $userToken)
-                    .autocorrectionDisabled().accessibilityIdentifier("akahu-user-token")
-                Text("Both tokens stay in your Mac’s Keychain.")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            if let akahuURL = URL(string: "https://my.akahu.nz") {
-                Link("Get tokens from Akahu’s Developers page", destination: akahuURL).font(.callout)
-            }
+            .reckonCard()
+
             if let error = store.connectionError {
-                Text(error).font(.callout).foregroundStyle(.red).fixedSize(horizontal: false, vertical: true)
+                Label(error, systemImage: "exclamationmark.circle")
+                    .font(.callout).foregroundStyle(.red).fixedSize(horizontal: false, vertical: true)
             }
-            Divider()
-            Toggle("Launch at login", isOn: Binding(get: { launchAtLogin }, set: { enabled in
-                    do {
-                        try ReckonLoginItem.setEnabled(enabled)
-                        launchAtLogin = ReckonLoginItem.isEnabled
-                        loginMessage = ReckonLoginItem.requiresApproval
-                            ? "Allow Reckon in System Settings → General → Login Items." : nil
-                    } catch {
-                        loginMessage = "Could not change launch at login. Open Reckon from its app bundle and try again."
-                        launchAtLogin = ReckonLoginItem.isEnabled
-                    }
-                }))
-                .disabled(store.isDemo)
-            if let loginMessage { Text(loginMessage).font(.caption).foregroundStyle(.secondary) }
+
             if store.isConfigured {
-                Button("Disconnect & clear local history", role: .destructive) {
-                    store.disconnect(); appToken = ""; userToken = ""
-                }
-            }
-            HStack {
-                Spacer()
-                Button("Cancel") { appToken = ""; userToken = ""; closeConnection() }.keyboardShortcut(.cancelAction)
-                Button("Save and connect") {
-                    if store.saveAkahuCredentials(appToken: appToken, userToken: userToken) {
-                        appToken = ""
-                        userToken = ""
-                        closeConnection()
+                HStack(alignment: .top, spacing: 18) {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("Disconnect Akahu").font(.callout.weight(.medium))
+                        Text("Remove this connection and its local history.")
+                            .font(.caption).foregroundStyle(.secondary)
                     }
+                    Spacer(minLength: 0)
+                    Button("Disconnect…", role: .destructive) { confirmingDisconnect = true }
                 }
-                .keyboardShortcut(.defaultAction)
-                .disabled(store.isDemo)
+                .padding(.horizontal, 4).padding(.top, 8)
             }
         }
         .textFieldStyle(.roundedBorder)
-        .padding(26)
-        .frame(width: 460)
-        .fixedSize(horizontal: false, vertical: true)
-        .onDisappear { appToken = ""; userToken = "" }
+        .alert("Disconnect Akahu?", isPresented: $confirmingDisconnect) {
+            Button("Cancel", role: .cancel) { }
+            Button("Disconnect and clear history", role: .destructive) {
+                store.disconnect()
+                clearTokens()
+                editingTokens = false
+                if !store.isConfigured { connectionUpdated() }
+            }
+        } message: {
+            Text("This removes your saved tokens, balance history, visit comparisons, and alert settings from this Mac. You can reconnect at any time.")
+        }
+        .onDisappear { clearTokens() }
     }
+
+    private var tokenFields: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Divider()
+            VStack(alignment: .leading, spacing: 7) {
+                Text("App ID token").font(.callout.weight(.medium))
+                SecureField(store.isConfigured ? "Saved token · leave blank to keep" : "Enter your app ID token", text: $appToken)
+                    .autocorrectionDisabled().accessibilityIdentifier("akahu-app-token")
+            }
+            VStack(alignment: .leading, spacing: 7) {
+                Text("User access token").font(.callout.weight(.medium))
+                SecureField(store.isConfigured ? "Saved token · leave blank to keep" : "Enter your user access token", text: $userToken)
+                    .autocorrectionDisabled().accessibilityIdentifier("akahu-user-token")
+            }
+            if !hasConnection {
+                Label("Stored securely in Keychain", systemImage: "lock")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            if let akahuURL = URL(string: "https://my.akahu.nz") {
+                Link("Get Akahu tokens ↗", destination: akahuURL).font(.callout)
+            }
+            HStack {
+                Spacer()
+                if hasConnection {
+                    Button("Cancel") { clearTokens(); editingTokens = false }
+                }
+                Button(store.isConfigured ? "Save changes" : "Connect Akahu") {
+                    if store.saveAkahuCredentials(appToken: appToken, userToken: userToken) {
+                        clearTokens()
+                        editingTokens = false
+                        connectionUpdated()
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(store.isDemo || (store.isConfigured
+                    ? appToken.isEmpty && userToken.isEmpty
+                    : appToken.isEmpty || userToken.isEmpty))
+            }
+        }
+    }
+
+    private func clearTokens() { appToken = ""; userToken = "" }
 }

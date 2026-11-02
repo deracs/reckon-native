@@ -7,7 +7,7 @@ struct BankForecastView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 6) {
-                Text("Dead reckoning").font(.system(.title2, design: .serif).weight(.semibold))
+                Text("Dead reckoning").font(.headline)
                 ReckonInfoHelp(subject: "Dead reckoning", explanation: "A 30-day estimate for NZD checking and savings, based on detected regular income and bills. Everyday spending and unexpected payments are not included. Hover or drag across the chart to inspect a day.")
             }
             if let forecast = section.value {
@@ -15,7 +15,8 @@ struct BankForecastView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("In 30 days · estimated").font(.caption).foregroundStyle(.secondary)
                         Text(BankFormatting.money(forecast.endingBalance.value))
-                            .font(.system(size: 30, weight: .medium, design: .rounded)).monospacedDigit()
+                            .font(.system(size: 30, weight: .semibold)).monospacedDigit()
+                            .lineLimit(1).minimumScaleFactor(0.65)
                     }
                     Spacer()
                 }

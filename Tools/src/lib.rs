@@ -3,6 +3,7 @@ pub mod backend_process;
 pub mod build_backend;
 pub mod live_backend_comparison;
 pub mod loopback_fixture;
+pub mod release_command;
 pub mod release_privacy;
 pub mod release_updates;
 

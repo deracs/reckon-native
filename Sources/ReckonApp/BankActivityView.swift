@@ -43,29 +43,39 @@ struct BankActivityView: View {
                         .font(.callout).foregroundStyle(.secondary)
                 }
             }
-            .padding(12).frame(maxWidth: .infinity, alignment: .leading)
-            .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 10))
-            TextField("Search recent activity", text: $search).textFieldStyle(.roundedBorder)
+            .reckonCard()
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass").foregroundStyle(.secondary).accessibilityHidden(true)
+                TextField("Search recent activity", text: $search).textFieldStyle(.plain)
+            }
+            .padding(12)
+            .background(ReckonAppearance.surface, in: RoundedRectangle(cornerRadius: 14))
             Toggle("Only newly seen", isOn: $onlyNew)
-                .disabled(store.visitSummary?.newTransactions == nil).font(.callout)
+                .toggleStyle(.switch).controlSize(.small)
+                .disabled(store.visitSummary?.newTransactions == nil).font(.callout).padding(.horizontal, 4)
             if let error = store.dashboard?.transactions.errorMessage {
                 Text(error).font(.callout).foregroundStyle(.secondary)
             } else if rows.isEmpty {
                 Text("No matching transactions.").font(.callout).foregroundStyle(.secondary)
             }
-            ForEach(rows) { row in
-                HStack(alignment: .center, spacing: 10) {
-                    BankMerchantLogoView(transaction: row)
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(row.displayName).lineLimit(2)
-                        Text("\(BankCalendar.label(row.date)) · \(row.category ?? "Uncategorised")")
-                            .font(.caption2).foregroundStyle(.secondary)
+            if !rows.isEmpty {
+                VStack(spacing: 18) {
+                    ForEach(rows) { row in
+                        HStack(alignment: .center, spacing: 10) {
+                            BankMerchantLogoView(transaction: row)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(row.displayName).font(.callout.weight(.medium)).lineLimit(2)
+                                Text("\(BankCalendar.label(row.date)) · \(row.category ?? "Uncategorised")")
+                                    .font(.caption2).foregroundStyle(.secondary)
+                            }
+                            Spacer(minLength: 6)
+                            Text(BankFormatting.money(row.amount.value, currency: row.currency))
+                                .font(.callout).monospacedDigit().fixedSize()
+                                .foregroundStyle(row.amount.value > 0 ? Color.green : Color.primary)
+                        }
                     }
-                    Spacer(minLength: 6)
-                    Text(BankFormatting.money(row.amount.value, currency: row.currency))
-                        .font(.callout).monospacedDigit().fixedSize()
-                        .foregroundStyle(row.amount.value > 0 ? Color.green : Color.primary)
                 }
+                .reckonCard()
             }
         }
     }

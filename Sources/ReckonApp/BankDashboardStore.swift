@@ -218,6 +218,37 @@ final class BankDashboardStore: ObservableObject {
         persistHistory()
     }
 
+    func saveNewAlertSettings(targets: [String: String], deposit: String) {
+        var parsedTargets: [String: Decimal] = [:]
+        for (id, text) in targets {
+            let value = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            if value.isEmpty { continue }
+            guard let amount = parseAlertAmount(value, allowNegative: true) else {
+                alertSettingsError = "Enter a balance with up to two decimal places, or leave it blank."
+                return
+            }
+            parsedTargets[id] = amount
+        }
+        let value = deposit.trimmingCharacters(in: .whitespacesAndNewlines)
+        let threshold = value.isEmpty ? nil : parseAlertAmount(value, allowNegative: false)
+        guard value.isEmpty || (threshold != nil && threshold! > 0) else {
+            alertSettingsError = "Enter a deposit amount greater than zero with up to two decimal places, or leave it blank."
+            return
+        }
+        if journal.depositThreshold != threshold { journal.resetDepositBaseline() }
+        journal.depositThreshold = threshold
+        journal.balanceTargets = parsedTargets
+        alertSettingsError = nil
+        persistHistory()
+    }
+
+    private func parseAlertAmount(_ value: String, allowNegative: Bool) -> Decimal? {
+        let pattern = allowNegative ? #"^-?[0-9]+(?:\.[0-9]{1,2})?$"# : #"^[0-9]+(?:\.[0-9]{1,2})?$"#
+        guard value.range(of: pattern, options: .regularExpression) != nil,
+              let amount = Decimal(string: value, locale: Locale(identifier: "en_US_POSIX")), !amount.isNaN else { return nil }
+        return amount
+    }
+
     func shutdown() {
         generation = UUID()
         loadTask?.cancel()

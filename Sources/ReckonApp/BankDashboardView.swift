@@ -11,6 +11,16 @@ private enum DashboardTab: String, CaseIterable, Identifiable {
     case standingOrders = "Standing orders"
 
     var id: Self { self }
+    var shortLabel: String {
+        switch self {
+        case .overview: "Overview"
+        case .accounts: "Accounts"
+        case .activity: "Activity"
+        case .forecast: "Forecast"
+        case .spending: "Spending"
+        case .standingOrders: "Bills"
+        }
+    }
     var systemImage: String {
         switch self {
         case .overview: "chart.bar.xaxis"
@@ -30,13 +40,14 @@ struct BankDashboardView: View {
     let openSoftwareUpdate: () -> Void
     let lockReckon: () -> Void
     let dismissDashboard: () -> Void
+    var isWindow = false
     @State private var selectedTab = DashboardTab.overview
     @State private var expandedBanks: Set<String> = []
 
     var body: some View {
         VStack(spacing: 0) {
             HStack(alignment: .firstTextBaseline) {
-                Text("Reckon").font(.system(size: 23, weight: .semibold, design: .serif))
+                Text("Reckon").font(.system(size: 22, weight: .semibold))
                 if store.isDemo { Text("SAMPLE DATA").font(.caption2.weight(.semibold)).foregroundStyle(.orange) }
                 Spacer()
                 if store.isLoading { ProgressView().controlSize(.small).accessibilityLabel("Loading stats") }
@@ -45,58 +56,58 @@ struct BankDashboardView: View {
                                       openUpdate: openSoftwareUpdate)
                 }
                 Button(action: lockReckon) { Image(systemName: "lock") }
-                    .buttonStyle(.plain).help("Lock Reckon").accessibilityLabel("Lock Reckon")
+                    .buttonStyle(ReckonIconButtonStyle()).help("Lock Reckon").accessibilityLabel("Lock Reckon")
                 Button(action: openSettings) { Image(systemName: "gearshape") }
-                    .buttonStyle(.plain).help("Settings").accessibilityLabel("Settings")
+                    .buttonStyle(ReckonIconButtonStyle()).help("Settings").accessibilityLabel("Settings")
             }
-            .padding(.horizontal, 22).padding(.top, 18).padding(.bottom, 14)
-            Divider()
+            .padding(.horizontal, 22).padding(.top, isWindow ? 38 : 18).padding(.bottom, 16)
 
             if let dashboard = store.dashboard {
-                HStack(spacing: 4) {
+                HStack(spacing: 3) {
                     ForEach(DashboardTab.allCases) { tab in
                         Button { selectedTab = tab } label: {
-                            Image(systemName: tab.systemImage).font(.system(size: 17))
-                                .frame(maxWidth: .infinity).frame(height: 30)
+                            VStack(spacing: 7) {
+                                Image(systemName: tab.systemImage).font(.system(size: 16))
+                                Text(tab.shortLabel).font(.system(size: 9, weight: .medium))
+                            }
+                                .frame(maxWidth: .infinity).frame(height: 49)
                                 .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
-                        .foregroundStyle(selectedTab == tab ? Color.white : Color.primary)
-                        .background(selectedTab == tab ? Color.accentColor : Color.clear, in: RoundedRectangle(cornerRadius: 6))
+                        .foregroundStyle(selectedTab == tab ? ReckonAppearance.accent : Color.secondary)
+                        .background(selectedTab == tab ? ReckonAppearance.accent.opacity(0.09) : Color.clear, in: RoundedRectangle(cornerRadius: 13))
                         .help(tab.rawValue)
                         .accessibilityLabel(tab.rawValue)
                         .accessibilityAddTraits(selectedTab == tab ? [.isSelected] : [])
                     }
                 }
-                .padding(5).background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 10))
-                .padding(.horizontal, 16).padding(.vertical, 10)
+                .padding(.horizontal, 16).padding(.bottom, 8)
 
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 22) {
+                    VStack(alignment: .leading, spacing: 14) {
                         if let error = store.loadError {
                             Label("\(error) Showing the last fetched figures.", systemImage: "exclamationmark.triangle")
                                 .font(.callout).foregroundStyle(.orange)
                         }
                         switch selectedTab {
                         case .overview:
-                            liquidBalance(dashboard)
-                            cashflow(dashboard)
-                            freshness(dashboard)
+                            liquidBalance(dashboard).reckonCard()
+                            cashflow(dashboard).reckonCard()
+                            freshness(dashboard).reckonCard()
                         case .accounts:
-                            accountBalances(dashboard)
+                            accountBalances(dashboard).reckonCard()
                         case .activity:
                             BankActivityView(store: store)
                         case .forecast:
-                            BankForecastView(section: dashboard.forecast)
+                            BankForecastView(section: dashboard.forecast).reckonCard()
                         case .spending:
-                            spending(dashboard)
+                            spending(dashboard).reckonCard()
                         case .standingOrders:
-                            BankUpcomingBillsView(section: dashboard.forecast)
-                            Divider()
-                            standingOrders(dashboard)
+                            BankUpcomingBillsView(section: dashboard.forecast).reckonCard()
+                            standingOrders(dashboard).reckonCard()
                         }
                     }
-                    .padding(22)
+                    .padding(.horizontal, 16).padding(.vertical, 8)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .id(selectedTab)
@@ -105,7 +116,6 @@ struct BankDashboardView: View {
                 emptyDashboard.frame(height: 250)
             }
 
-            Divider()
             HStack {
                 Button("Reload stats", systemImage: "arrow.clockwise") { store.reloadDashboard() }
                     .disabled(!store.isConfigured || store.isLoading || store.isDemo)
@@ -114,10 +124,12 @@ struct BankDashboardView: View {
                 Button("Quit") { NSApp.terminate(nil) }.keyboardShortcut("q")
             }
             .buttonStyle(.borderless).font(.callout)
-            .padding(.horizontal, 20).padding(.vertical, 12)
+            .padding(.horizontal, 22).padding(.vertical, 14)
         }
-        .frame(width: 410)
-        .background(.regularMaterial)
+        .frame(width: 430)
+        .background(ReckonAppearance.background)
+        .tint(ReckonAppearance.accent)
+        .ignoresSafeArea(.container, edges: .top)
         .onExitCommand(perform: dismissDashboard)
     }
 
@@ -145,7 +157,8 @@ struct BankDashboardView: View {
         VStack(alignment: .leading, spacing: 5) {
             sectionHeading("Liquid balance", explanation: "The sum of NZD checking and savings accounts. Investments and foreign-currency accounts are excluded.")
             Text(BankFormatting.money(dashboard.liquidBalance))
-                .font(.system(size: 38, weight: .medium, design: .rounded)).monospacedDigit()
+                .font(.system(size: 36, weight: .semibold)).monospacedDigit()
+                .lineLimit(1).minimumScaleFactor(0.65)
                 .foregroundStyle(dashboard.liquidBalance < 0 ? Color.red : Color.primary)
                 .textSelection(.enabled)
             Text("NZD").font(.caption).foregroundStyle(.secondary)
@@ -231,7 +244,7 @@ struct BankDashboardView: View {
                     Spacer()
                     cashflowMetric("Net", value: cashflow.net.value, dashboard: dashboard)
                 }
-                .padding(12).background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 10))
+                .padding(.vertical, 8)
             } else {
                 emptySection("No cashflow recorded this month.")
             }
@@ -244,7 +257,7 @@ struct BankDashboardView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(name).font(.caption).foregroundStyle(.secondary)
             Text(BankFormatting.money(value, currency: dashboard.hasMultipleCurrencies ? nil : "NZD", compact: true))
-                .font(.system(.callout, design: .rounded).weight(.semibold)).monospacedDigit()
+                .font(.system(.callout).weight(.semibold)).monospacedDigit()
                 .foregroundStyle(name == "Net" && value < 0 ? Color.red : Color.primary)
         }
     }

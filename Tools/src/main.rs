@@ -12,7 +12,7 @@ async fn main() {
 async fn run() -> ToolResult {
     std::env::set_current_dir(project_root())?;
     let args: Vec<String> = std::env::args().skip(1).collect();
-    let (command, args) = args.split_first().ok_or("Usage: cargo reckon <check|fmt|test|build-backend|privacy|import-akahu|sign-update|publish-feeds|measure-backend|compare-live> [options]")?;
+    let (command, args) = args.split_first().ok_or("Usage: cargo reckon <check|fmt|test|release|build-backend|privacy|import-akahu|sign-update|publish-feeds|measure-backend|compare-live> [options]")?;
     match command.as_str() {
         "check" | "fmt" | "test" if args.is_empty() => {
             for manifest in ["Backend/Cargo.toml", "Tools/Cargo.toml"] {
@@ -51,6 +51,7 @@ async fn run() -> ToolResult {
             Ok(())
         }
         "build-backend" if args.is_empty() => reckon_tools::build_backend::build_backend(),
+        "release" => reckon_tools::release_command::run_release(args),
         "privacy" => reckon_tools::release_privacy::check_release_privacy(args),
         "import-akahu" => reckon_tools::release_privacy::import_akahu_credentials(args),
         "sign-update" if args.len() == 1 => {

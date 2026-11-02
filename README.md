@@ -69,9 +69,9 @@ The menu bar shows only the chart icon. Your balances appear inside the dropdown
 
 ## Everyday use
 
-- **Open from any app:** press **Control–Option–R**. Change the shortcut option in **Settings → Controls**.
+- **Open from any app:** press **Control–Option–R**. Change the shortcut option in **Settings → General**.
 - **Open Settings:** click the **gear icon** in the dropdown.
-- **Start with your Mac:** enable **Launch at login** in **Settings → Connection**. Keep Reckon in Applications.
+- **Start with your Mac:** enable **Launch at login** in **Settings → General**. Keep Reckon in Applications.
 - **Read the latest data:** click **Reload stats**. Reckon also reads data every five minutes.
 - **Enable alerts:** open **Settings → Alerts**. Alerts are off by default. Notification banners hide account names and amounts.
 - **Lock immediately:** click the **lock icon**. Reckon otherwise locks ten minutes after you unlock it.
@@ -110,7 +110,7 @@ For version 0.7.1 or earlier, install the latest release manually once. Later up
 - Update checks send **no bank data or Akahu tokens** to GitHub. GitHub receives normal connection metadata, such as your IP address.
 - The public source and release downloads contain **no saved bank connection or personal bank history**.
 
-**Disconnect & clear local history** in Settings → Connection removes the saved tokens and resets local history and alert settings.
+**Disconnect…** in Settings → Connection asks for confirmation, then removes the saved tokens and resets local history and alert settings.
 
 ## A few things to know
 

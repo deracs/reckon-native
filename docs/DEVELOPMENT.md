@@ -76,7 +76,9 @@ Demo mode displays a sample-data label and skips authentication for UI checks. I
 
 ## Data and calculations
 
-The dropdown has one row of six icon tabs with hover labels: **Overview**, **Accounts**, **Activity**, **Dead reckoning**, **The bleed**, and **Standing orders**. Each icon has an accessibility label.
+The dropdown has one row of six icon tabs with short visible labels and full hover labels: **Overview**, **Accounts**, **Activity**, **Dead reckoning**, **The bleed**, and **Standing orders**. Each icon has an accessibility label.
+
+Settings uses a labelled sidebar for General, Connection, Alerts, and Updates. The transparent title bar retains the native Mac window controls. General contains launch-at-login and shortcut controls. Connection shows saved-connection status, reveals token fields on request, and confirms before disconnecting and clearing local history. Token edits and alert amounts use explicit save actions; toggles apply immediately.
 
 Small info icons beside headings hold longer explanations: hover for a tooltip or click for a readable popover. Currency and estimate warnings remain visible. A tab change returns that list to the top.
 
@@ -110,13 +112,15 @@ Each refresh starts a backend and stops it after the dashboard response. Swift r
 
 ## Local history and alerts
 
-**Control–Option–R** opens Reckon from any app. It uses a registered macOS hotkey and does not request Accessibility or Input Monitoring access. Disable it in Settings → Controls. If another app owns the shortcut, Settings shows the conflict.
+**Control–Option–R** opens Reckon from any app. It uses a registered macOS hotkey and does not request Accessibility or Input Monitoring access. Disable it in Settings → General. If another app owns the shortcut, Settings shows the conflict.
 
 Reckon records up to 90 daily balance observations per account. It retains the latest observation for each Auckland day. Sparklines appear once two days are available. Missing days are not synthesised.
 
-History, visit baselines, alert limits, and alert state are encrypted with AES-GCM in `~/Library/Application Support/nz.reckon.native/balance-history.enc`. A random 256-bit key stays in Keychain. Unreadable or unauthentic history is left untouched and an error appears in Settings → Controls. A disconnect or a user token change resets local history and alert settings.
+History, visit baselines, alert limits, and alert state are encrypted with AES-GCM in `~/Library/Application Support/nz.reckon.native/balance-history.enc`. A random 256-bit key stays in Keychain. Unreadable or unauthentic history is left untouched and an error appears in Settings → General. A disconnect or a user token change resets local history and alert settings.
 
 Alerts are off initially. Open Settings → Alerts to enable notifications and choose limits. Reckon requests permission only when you enable alerts.
+
+Deposit alerts use newly seen transactions from the latest 100 non-transfer activity records. They apply to NZD deposits at or above the configured minimum. The first successful activity fetch after the threshold changes sets a baseline; late imports may count as new, and deposits outside the activity page can be missed. Balance target alerts trigger on crossings from below to at-or-above the selected account target and can trigger again after the balance falls below it. A currency change clears that account’s target.
 
 Balance alerts trigger on crossings from at-or-above to below the chosen limit, with no first-fetch or repeated-below alerts. A currency change clears that account’s limit. Standing order alerts compare the NZD recurring estimates used by Dead reckoning. A first observation sets the baseline. Repeats or decreases do not alert. These are changes in detected estimates, not confirmation that a merchant changed its price.
 
@@ -197,12 +201,28 @@ This command compares direct live requests, then replays one real-data snapshot 
 
 The public repository is [deracs/reckon-native](https://github.com/deracs/reckon-native). Pushes to `main` and pull requests build and check Apple silicon and Intel variants. The workflow uses synthetic bank fixtures, needs no Akahu tokens, and uploads ZIPs, SHA-256 checksums, and public update-signature metadata as Actions artifacts.
 
-A version tag such as `vX.Y.Z` creates a GitHub release after both builds and their checks pass. The release job signs and publishes the architecture-specific Sparkle feeds in `updates/` on `main`. Replace `X.Y.Z` with the version from `CFBundleShortVersionString` in `Resources/Info.plist`. Increment `CFBundleVersion` for each release.
+Use `cargo reckon release` from a clean `main` checkout with access to the `deracs/reckon-native` origin. Authenticate with `gh auth login` first. Commit feature changes before release. Write reviewed release notes to an ignored file, such as `.build/release-notes.md`.
 
 ```sh
-git tag -a vX.Y.Z -m "Reckon vX.Y.Z"
-git push origin vX.Y.Z
+cargo reckon release patch --notes .build/release-notes.md --dry-run
+cargo reckon release patch --notes .build/release-notes.md
 ```
+
+The selector accepts `patch`, `minor`, `major`, or an explicit stable version such as `0.7.11`. The dry run shows the planned changes without changes to files, commits, tags, or releases.
+
+The command updates the app version, build number, backend manifest, backend lockfile, and release notes. It runs Rustfmt, Clippy, the app build, Swift checks, Rust tests, code signature checks, and privacy checks. Failed checks restore the prepared files. Concurrent edits stay untouched.
+
+After successful checks, the command commits only release files and creates an annotated version tag. An atomic push sends `main` and the tag together. Existing tags stay unchanged. GitHub then builds both architectures, signs their archives, publishes the release, and signs the Sparkle feeds in `updates/`.
+
+The command waits for that workflow, confirms both archives and checksum assets, and checks each feed's version and release asset URL. The workflow performs signature verification. The command then syncs the feed commit with `git pull --ff-only origin main` if the working tree remains clean.
+
+If GitHub publication fails after the tag exists, continue with the same explicit version:
+
+```sh
+cargo reckon release 0.7.11 --resume
+```
+
+Resume retries failed workflow jobs and waits for publication. It preserves the existing version, build number, release commit, and tag. `cargo reckon release --help` lists the options. The command uses the existing Actions signing secret; it needs no local export of the private key.
 
 Release access follows the repository’s visibility. The ZIP contains only the app and runtime. Each user connects their own Akahu tokens. It does not export a Keychain entry or local history.
 

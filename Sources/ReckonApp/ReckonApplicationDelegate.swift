@@ -122,13 +122,12 @@ final class ReckonApplicationDelegate: NSObject, NSApplicationDelegate, NSWindow
                               openSettings: { [weak self] in self?.showSettings() },
                               openSoftwareUpdate: { [weak self] in self?.checkForSoftwareUpdates() },
                               lockReckon: { [weak self] in self?.lockReckon() },
-                              dismissDashboard: { [weak self] in self?.dismissDashboard() })
+                              dismissDashboard: { [weak self] in self?.dismissDashboard() },
+                              isWindow: inPreview)
         }
         if inPreview {
             popover.performClose(nil)
-            let window = NSWindow(contentViewController: NSHostingController(rootView: content))
-            window.title = "Reckon Preview"
-            window.styleMask = [.titled, .closable]
+            let window = makeReckonWindow(title: "Reckon Preview", content: content)
             window.isReleasedWhenClosed = false
             window.delegate = self
             window.center()
@@ -162,13 +161,18 @@ final class ReckonApplicationDelegate: NSObject, NSApplicationDelegate, NSWindow
 
     private func showSettings() {
         guard appLock.isUnlocked else { return }
-        let window = NSWindow(contentViewController: NSHostingController(rootView: ReckonProtectedView(appLock: appLock) { [weak self, store = self.store!] in
+        if let settingsWindow {
+            popover.performClose(nil)
+            settingsWindow.deminiaturize(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            settingsWindow.makeKeyAndOrderFront(nil)
+            return
+        }
+        let window = makeReckonWindow(title: "Reckon Settings", content: ReckonProtectedView(appLock: appLock) { [weak self, store = self.store!] in
             if let shortcut = self?.shortcut, let softwareUpdates = self?.softwareUpdates {
                 ReckonPreferencesView(store: store, shortcut: shortcut, softwareUpdates: softwareUpdates, close: { [weak self] in self?.settingsWindow?.close() })
             }
-        }))
-        window.title = "Reckon Settings"
-        window.styleMask = [.titled, .closable]
+        })
         window.isReleasedWhenClosed = false
         window.delegate = self
         window.center()
@@ -177,6 +181,26 @@ final class ReckonApplicationDelegate: NSObject, NSApplicationDelegate, NSWindow
         previewWindow?.orderOut(nil)
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
+    }
+
+    /// Blends the native title bar into the content while keeping Mac window controls.
+    private func makeReckonWindow<Content: View>(title: String, content: Content) -> NSWindow {
+        let controller = NSHostingController(rootView: content)
+        controller.sizingOptions = [.intrinsicContentSize]
+        controller.safeAreaRegions = []
+        let contentSize = controller.view.fittingSize
+        let window = NSWindow(contentRect: NSRect(origin: .zero, size: contentSize),
+                              styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
+                              backing: .buffered, defer: false)
+        window.title = title
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.titlebarSeparatorStyle = .none
+        window.isMovableByWindowBackground = true
+        window.backgroundColor = ReckonAppearance.canvasColor
+        window.contentViewController = controller
+        window.setFrame(NSRect(origin: window.frame.origin, size: contentSize), display: false)
+        return window
     }
 
     func popoverDidClose(_ notification: Notification) { store.endVisit() }
@@ -243,13 +267,14 @@ private struct ReckonLockedView: View {
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: "lock.shield").font(.system(size: 38)).foregroundStyle(.secondary)
-            Text("Reckon is locked").font(.system(.title2, design: .serif).weight(.semibold))
+            Text("Reckon is locked").font(.system(.title2).weight(.semibold))
             Text(appLock.errorMessage ?? "Use Touch ID, Apple Watch, or your Mac login password to view your accounts.")
                 .font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
             Button(appLock.state == .authenticating ? "Unlock in the macOS prompt…" : "Unlock Reckon", action: unlock)
                 .disabled(appLock.state == .authenticating)
             Button("Quit Reckon") { NSApp.terminate(nil) }.buttonStyle(.borderless)
         }
-        .padding(28).frame(width: 410).background(.regularMaterial)
+        .padding(28).frame(width: 430).background(ReckonAppearance.background)
+        .tint(ReckonAppearance.accent)
     }
 }

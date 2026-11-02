@@ -47,7 +47,7 @@ public struct BankVisitSummary: Sendable {
 }
 
 public struct BankAlert: Codable, Identifiable, Sendable {
-    public enum Kind: String, Codable, Sendable { case lowBalance, chargeIncrease }
+    public enum Kind: String, Codable, Sendable { case lowBalance, chargeIncrease, balanceTarget, deposit }
     public let id: UUID
     public let date: Date
     public let kind: Kind
@@ -72,6 +72,9 @@ public struct BankJournal: Codable, Sendable {
     public var samples: [String: [BankBalanceSample]] = [:]
     public var lastViewed: BankViewedSnapshot?
     public var alertLimits: [String: Decimal] = [:]
+    public var balanceTargets: [String: Decimal]?
+    public var depositThreshold: Decimal?
+    private var seenDepositTransactionIDs: Set<String>?
     public var notificationsEnabled = false
     public var chargeIncreaseAlerts = false
     public private(set) var alerts: [BankAlert] = []
@@ -95,13 +98,29 @@ public struct BankJournal: Codable, Sendable {
             samples[account.id] = history.sorted { $0.day < $1.day }
             if let previous = previousBalances[account.id], previous.currency != account.currency {
                 alertLimits.removeValue(forKey: account.id)
+                balanceTargets?.removeValue(forKey: account.id)
             }
             if notificationsEnabled, let limit = alertLimits[account.id], let previous = previousBalances[account.id],
                previous.currency == account.currency, previous.amount >= limit, account.balance.value < limit {
                 found.append(BankAlert(date: dashboard.fetchedAt, kind: .lowBalance, subject: account.name,
                                        previous: previous.amount, current: account.balance.value, currency: account.currency))
             }
+            if notificationsEnabled, let target = balanceTargets?[account.id], let previous = previousBalances[account.id],
+               previous.currency == account.currency, previous.amount < target, account.balance.value >= target {
+                found.append(BankAlert(date: dashboard.fetchedAt, kind: .balanceTarget, subject: account.name,
+                                       previous: previous.amount, current: account.balance.value, currency: account.currency))
+            }
             previousBalances[account.id] = BankObservedBalance(amount: account.balance.value, currency: account.currency)
+        }
+        if let transactions = dashboard.transactions.value {
+            let ids = Set(transactions.map(\.id))
+            if notificationsEnabled, let threshold = depositThreshold, let seen = seenDepositTransactionIDs {
+                for transaction in transactions where !seen.contains(transaction.id) && transaction.currency == "NZD" && transaction.amount.value > 0 && transaction.amount.value >= threshold {
+                    found.append(BankAlert(date: dashboard.fetchedAt, kind: .deposit, subject: transaction.displayName,
+                                           previous: 0, current: transaction.amount.value, currency: transaction.currency))
+                }
+            }
+            seenDepositTransactionIDs = (seenDepositTransactionIDs ?? []).union(ids)
         }
         if let forecast = dashboard.forecast.value {
             var charges: [String: Decimal] = [:]
@@ -120,6 +139,11 @@ public struct BankJournal: Codable, Sendable {
         return found
     }
 
+    /// Starts a new deposit baseline after changing the deposit threshold.
+    public mutating func resetDepositBaseline() {
+        seenDepositTransactionIDs = nil
+    }
+
     public func history(for account: BankAccount) -> [BankBalanceSample] {
         (samples[account.id] ?? []).filter { $0.currency == account.currency }
     }
@@ -128,6 +152,8 @@ public struct BankJournal: Codable, Sendable {
         samples.values.allSatisfy { rows in
             rows.count <= 90 && rows.allSatisfy { BankCalendar.date($0.day) != nil && !$0.balance.isNaN && $0.currency.count == 3 }
         } && alertLimits.values.allSatisfy { !$0.isNaN }
+          && (balanceTargets?.values.allSatisfy { !$0.isNaN } ?? true)
+          && (depositThreshold.map { !$0.isNaN && $0 > 0 } ?? true)
           && previousBalances.values.allSatisfy { !$0.amount.isNaN && $0.currency.count == 3 }
           && previousCharges.values.allSatisfy { !$0.isNaN }
     }

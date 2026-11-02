@@ -35,6 +35,31 @@ struct BankJournalTests: Sendable {
         try bankExpect(journal.record(try dashboard(balance: "0")).isEmpty)
     }
 
+    func balanceTargetsAndDepositsUseBaselines() throws {
+        var journal = BankJournal()
+        journal.notificationsEnabled = true
+        journal.balanceTargets = ["a1": 100]
+        journal.depositThreshold = 200
+        let old = #"[{"id":"old","accountId":"a1","date":"2026-10-19","description":"Pay","amount":"300","currency":"NZD"}]"#
+        let current = #"[{"id":"old","accountId":"a1","date":"2026-10-19","description":"Pay","amount":"300","currency":"NZD"},{"id":"new","accountId":"a1","date":"2026-10-20","description":"Pay","amount":"200","currency":"NZD"},{"id":"small","accountId":"a1","date":"2026-10-20","description":"Other","amount":"199","currency":"NZD"}]"#
+        try bankExpect(journal.record(try dashboard(balance: "99", transactions: old)).isEmpty)
+        let alerts = journal.record(try dashboard(balance: "100", transactions: current))
+        try bankExpect(alerts.filter { $0.kind == .balanceTarget }.count == 1)
+        try bankExpect(alerts.filter { $0.kind == .deposit }.count == 1)
+        try bankExpect(journal.record(try dashboard(balance: "100", transactions: current)).isEmpty)
+        _ = journal.record(try dashboard(balance: "99", transactions: current))
+        try bankExpect(journal.record(try dashboard(balance: "100", transactions: current)).filter { $0.kind == .balanceTarget }.count == 1)
+        _ = journal.record(try dashboard(balance: "1", currency: "USD", transactions: current))
+        try bankExpect(journal.balanceTargets?["a1"] == nil)
+        journal.resetDepositBaseline()
+        try bankExpect(journal.record(try dashboard(balance: "1", currency: "USD", transactions: current)).isEmpty)
+    }
+
+    func oldJournalDecodesWithNewAlertsOff() throws {
+        let journal = try JSONDecoder().decode(BankJournal.self, from: Data(#"{"samples":{},"alertLimits":{},"notificationsEnabled":false,"chargeIncreaseAlerts":false,"alerts":[],"previousBalances":{},"previousCharges":{}}"#.utf8))
+        try bankExpect(journal.balanceTargets == nil && journal.depositThreshold == nil && journal.isValid)
+    }
+
     func chargeIncreasesDoNotAlertOnFirstObservationOrRepeats() throws {
         var journal = BankJournal()
         journal.notificationsEnabled = true

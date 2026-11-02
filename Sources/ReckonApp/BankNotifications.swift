@@ -34,9 +34,12 @@ final class BankNotifications {
         for alert in alerts {
             let content = UNMutableNotificationContent()
             content.title = "Reckon"
-            content.body = alert.kind == .lowBalance
-                ? "An account crossed your balance limit. Open Reckon to see the details."
-                : "A standing order estimate increased. Open Reckon to see the details."
+            switch alert.kind {
+            case .lowBalance: content.body = "An account crossed your balance limit. Open Reckon to see the details."
+            case .balanceTarget: content.body = "An account reached your balance target. Open Reckon to see the details."
+            case .deposit: content.body = "A new deposit has arrived. Open Reckon to see the details."
+            case .chargeIncrease: content.body = "A standing order estimate increased. Open Reckon to see the details."
+            }
             let request = UNNotificationRequest(identifier: alert.id.uuidString, content: content, trigger: nil)
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
                 center.add(request) { @Sendable error in
