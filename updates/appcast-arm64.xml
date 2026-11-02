@@ -2,11 +2,11 @@
 IMPORTANT: This file was signed by Sparkle. Any modifications to this file requires re-signing this file with generate_appcast or sign_update! The signed signature will be embedded at the end of this file.
 --><rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0"><channel>
 <title>Reckon updates</title><link>https://github.com/deracs/reckon-native/releases</link><description>Signed Reckon updates for macOS.</description><language>en-NZ</language>
-<item><title>Reckon 0.7.8</title>
-<sparkle:version>20</sparkle:version><sparkle:shortVersionString>0.7.8</sparkle:shortVersionString>
+<item><title>Reckon 0.7.9</title>
+<sparkle:version>21</sparkle:version><sparkle:shortVersionString>0.7.9</sparkle:shortVersionString>
 <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
-<enclosure url="https://api.github.com/repos/deracs/reckon-native/releases/assets/663965501" length="4107718" type="application/octet-stream" sparkle:edSignature="r39Bjp9x24qcbHUnNCzTKiGxRdhFYtAjirxQATBZUNWK4W4N2v0x57knB3Myd1kPkG4eBXUojxrZfGY2Av9HBQ=="></enclosure>
+<enclosure url="https://api.github.com/repos/deracs/reckon-native/releases/assets/703185636" length="4103904" type="application/octet-stream" sparkle:edSignature="ovlowCpr27ZA/YKS7SLPhsm6cvHX6DuPK/dwQsjZ1r+aCBNYV3MbGfcGTA4hy1xL1vieT/meex7GxXMZ88EqBg=="></enclosure>
 </item></channel></rss><!-- sparkle-signatures:
-edSignature: llwJHgrVvMJ8bnVdpUOdYsIIebPNtzD2Og6K37PNQ3XjUrpXu5DsEGfCk90CL7QM0EWujX/zIZHNDY3ac7m2BA==
+edSignature: Suymb44xRSJo4TBMebVEQJsaXvu2IUuzLEQsEwPUen/AxX80w3wY6Yt/Zs+hV614rCS4ZfygxEw9tKurTTtzDQ==
 length: 1053
 -->
