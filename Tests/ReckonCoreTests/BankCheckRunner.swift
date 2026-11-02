@@ -33,6 +33,9 @@ private struct BankCheck {
         let journal = BankJournalTests()
         var checks: [BankCheck] = [
             BankCheck(name: "Software updates reject foreign hosts, repositories and credential URLs") { try ReckonUpdateFeedTests().restrictsUpdateDownloadsToThisRepository() },
+            BankCheck(name: "Opening views coalesces update checks and respects opt-out") { try ReckonUpdateCheckStateTests().openingViewsCoalescesChecksAndRespectsPreferences() },
+            BankCheck(name: "Update failures retain the known release without claiming success") { try ReckonUpdateCheckStateTests().failuresDoNotClaimTheAppIsCurrentOrEraseTheKnownRelease() },
+            BankCheck(name: "Saved update results restore without an inflight check") { try ReckonUpdateCheckStateTests().savedResultsRestoreWithoutRestoringAnInflightCheck() },
             BankCheck(name: "Balance limit crossings and notification opt-out") { try journal.balanceLimitsOnlyAlertOnCrossings() },
             BankCheck(name: "Balance target crossings and deposit baselines") { try journal.balanceTargetsAndDepositsUseBaselines() },
             BankCheck(name: "Old journal remains compatible") { try journal.oldJournalDecodesWithNewAlertsOff() },

@@ -47,7 +47,7 @@ Build the app before the checks. The Swift checks exercise the bundled process. 
 
 The Swift checks use an executable runner because the standalone Command Line Tools omit the Swift Testing and XCTest modules.
 
-The window lifecycle checks require a logged-in macOS desktop. They drive the app's actual menu-bar and Settings actions with sample data, without reading credentials or starting a backend. They cover reopening the dropdown while Settings is visible, inactive, hidden, minimized, or closed, and restoring the existing Settings window.
+The window lifecycle checks require a logged-in macOS desktop. They drive the app's actual menu-bar and Settings actions with sample data, without reading credentials or starting a backend. They cover reopening the dropdown while Settings is visible, inactive, hidden, minimized, or closed, and restoring the existing Settings window. They also exercise Sparkle's completion callbacks without network requests. Core checks cover the automatic-check cooldown, preferences, and saved results.
 
 ## Rust style
 
@@ -233,9 +233,11 @@ The app icon uses the existing Reckon monogram as a reference. The built-in imag
 
 ## Update signatures
 
-Settings → Updates has **Check for Updates**, automatic check and automatic installation controls. Reckon checks GitHub every six hours by default. Sparkle downloads signed updates, installs them when the app quits, and can relaunch it when requested. Bank credentials, encrypted history and launch-at-login settings remain on this Mac.
+Settings → Updates has **Check for Updates**, automatic check and automatic installation controls. It shows the installed and latest versions, last check time, and result. A result is saved for the installed app version and build, so it survives a restart without presenting an old build's result after an upgrade. Failed checks retain the last known release and report failure rather than claiming the app is current.
 
-The dashboard header observes Sparkle's update state across all tabs. It shows **Update available** after discovery and **Update ready** when Sparkle stages installation. The button opens Sparkle's update window and waits while background work prevents user interaction. Skipped versions, failed updates, and checks with no update clear the indicator. Demo mode does not start the updater.
+Opening the dashboard or Settings requests a silent Sparkle information check, at most once a minute. Busy update sessions and staged installations are left alone. This uses `checkForUpdateInformation()` without changing Sparkle's six-hour background schedule. Turning off automatic checks disables both scheduled and opening checks; manual checks bypass the cooldown. Sparkle downloads signed updates, installs them when the app quits, and can relaunch it when requested. Bank credentials, encrypted history and launch-at-login settings remain on this Mac.
+
+The dashboard header shows a spinner during update checks and an icon only when an update is available or ready to install. The icon opens Sparkle's update window and waits while background work prevents user interaction. Its tooltip and accessibility label give the status and version. Skipping an update or completing a check with no update clears the indicator. Failures keep a known available update visible, with the failed result in Settings. Demo mode does not start the updater.
 
 Updates restart with Reckon locked. The normal macOS authentication policy still applies.
 

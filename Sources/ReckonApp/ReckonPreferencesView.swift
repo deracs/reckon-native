@@ -208,12 +208,50 @@ struct ReckonPreferencesView: View {
                     .font(.system(size: 28, weight: .light)).foregroundStyle(ReckonAppearance.accent)
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Reckon").font(.headline)
-                    Text("Version \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown")")
+                    Text("Installed \(softwareUpdates.installedVersion)")
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
                 Button("Check for Updates…") { softwareUpdates.checkForUpdates() }
                     .disabled(store.isDemo || !softwareUpdates.canCheckForUpdates)
+            }
+            Divider()
+            HStack(spacing: 10) {
+                if softwareUpdates.checkState.isChecking {
+                    ProgressView().controlSize(.small).accessibilityLabel("Checking for updates")
+                } else {
+                    Image(systemName: softwareUpdates.statusImage)
+                        .foregroundStyle(softwareUpdates.checkState.result == .failed ? Color.orange : ReckonAppearance.accent)
+                }
+                Text(softwareUpdates.statusTitle).font(.callout.weight(.semibold))
+                Spacer()
+                if softwareUpdates.updateNotice != nil {
+                    Button("Review update…") { softwareUpdates.checkForUpdates() }
+                        .disabled(store.isDemo || !softwareUpdates.canCheckForUpdates)
+                }
+            }
+            VStack(spacing: 12) {
+                HStack {
+                    Text(softwareUpdates.checkState.result == .failed ? "Last known latest" : "Latest version")
+                    Spacer()
+                    Text(softwareUpdates.checkState.latestVersion ?? "Not known yet").foregroundStyle(.secondary)
+                }
+                HStack {
+                    Text("Last checked")
+                    Spacer()
+                    if let date = softwareUpdates.lastCheckedAt {
+                        Text(date, format: .dateTime.day().month().hour().minute()).foregroundStyle(.secondary)
+                    } else { Text("Never").foregroundStyle(.secondary) }
+                }
+                HStack {
+                    Text("Last result")
+                    Spacer()
+                    Text(softwareUpdates.lastResultTitle).foregroundStyle(.secondary)
+                }
+            }
+            .font(.callout)
+            if let message = softwareUpdates.message {
+                Text(message).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
             Divider()
             Toggle(isOn: Binding(
@@ -226,8 +264,9 @@ struct ReckonPreferencesView: View {
                 Text("Download and install automatically").frame(maxWidth: .infinity, alignment: .leading)
             }
                 .disabled(store.isDemo || !softwareUpdates.automaticallyChecks)
-            settingsHeading("About updates", explanation: "Checks GitHub every six hours. Sparkle verifies signed feeds and update archives before installation. Updates preserve your Keychain connection, encrypted history and login preference. No bank data or system profile is sent to GitHub.")
-            if let message = softwareUpdates.message { Text(message).font(.caption).foregroundStyle(.secondary) }
+            Text("Checks when you open Reckon or Settings, up to once a minute, and every six hours in the background.")
+                .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            settingsHeading("About updates", explanation: "Automatic checks use GitHub when you open the dashboard or Settings, at most once per minute, and every six hours in the background. Turning off automatic checks disables both. Manual checks remain available. Sparkle verifies signed feeds and update archives before installation. Updates preserve your Keychain connection, encrypted history and login preference. No bank data or system profile is sent to GitHub.")
         }
         .toggleStyle(.switch).controlSize(.small).reckonCard()
     }

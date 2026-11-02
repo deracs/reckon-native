@@ -93,12 +93,12 @@ macOS checks your Mac login password. Reckon does not receive or store it. Each 
 
 ## Updates
 
-Reckon checks GitHub every six hours. Automatic downloads and installation are on by default.
+Reckon quietly checks GitHub when you open the dashboard or Settings, at most once a minute, and every six hours in the background. Automatic downloads and installation are on by default.
 Updates install when Reckon quits, or you can choose to install and relaunch immediately.
 
 For a manual check, open **Settings → Updates → Check for Updates**.
-When Reckon finds an update, **Update available** appears beside the lock and settings icons on every dashboard tab.
-It changes to **Update ready** once Sparkle prepares installation. Click the indicator to open the update window.
+The dashboard shows a spinner while checking and an update icon only when an update is available or ready to install. Click the icon to open the update window; hover to see the version and status.
+Settings shows the installed and latest versions, last check time, and result. Turning off automatic checks also disables checks on opening; manual checks remain available.
 Updates keep your saved connection, local history, and login preference. Authentication still applies after the app restarts.
 
 For version 0.7.1 or earlier, install the latest release manually once. Later updates use the current update feed.

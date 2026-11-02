@@ -35,11 +35,12 @@ struct ReckonUpdateBadge: View {
     var body: some View {
         Button(action: openUpdate) {
             Label(notice.title, systemImage: "arrow.down.circle.fill")
-                .font(.caption2.weight(.semibold)).fixedSize()
-                .padding(.horizontal, 8).padding(.vertical, 5)
-                .background(Color.accentColor.opacity(0.12), in: Capsule())
+                .labelStyle(.iconOnly)
+                .font(.system(size: 16, weight: .medium))
+                .frame(width: 30, height: 30)
+                .background(ReckonAppearance.accent.opacity(0.10), in: Circle())
         }
-        .buttonStyle(.plain).foregroundStyle(Color.accentColor)
+        .buttonStyle(.plain).foregroundStyle(ReckonAppearance.accent)
         .disabled(!canOpenUpdate)
         .help(canOpenUpdate ? notice.help : "Reckon \(notice.version) is downloading or being prepared. Please wait.")
         .accessibilityLabel("\(notice.title): Reckon \(notice.version)")

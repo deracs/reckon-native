@@ -51,7 +51,12 @@ struct BankDashboardView: View {
                 if store.isDemo { Text("SAMPLE DATA").font(.caption2.weight(.semibold)).foregroundStyle(.orange) }
                 Spacer()
                 if store.isLoading { ProgressView().controlSize(.small).accessibilityLabel("Loading stats") }
-                if let notice = softwareUpdates.updateNotice {
+                if softwareUpdates.checkState.isChecking {
+                    ProgressView().controlSize(.small)
+                        .frame(width: 30, height: 30)
+                        .help("Checking for updates…")
+                        .accessibilityLabel("Checking for updates")
+                } else if let notice = softwareUpdates.updateNotice {
                     ReckonUpdateBadge(notice: notice, canOpenUpdate: softwareUpdates.canCheckForUpdates,
                                       openUpdate: openSoftwareUpdate)
                 }

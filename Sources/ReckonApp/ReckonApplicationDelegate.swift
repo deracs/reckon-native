@@ -115,6 +115,7 @@ final class ReckonApplicationDelegate: NSObject, NSApplicationDelegate, NSWindow
 
     private func showDashboard(inPreview: Bool) {
         guard appLock.isUnlocked else { return }
+        softwareUpdates.checkWhenOpened()
         store.beginVisit()
         NSApp.activate(ignoringOtherApps: true)
         let content = ReckonProtectedView(appLock: appLock) { [weak self, store = self.store!, softwareUpdates = self.softwareUpdates!] in
@@ -161,6 +162,7 @@ final class ReckonApplicationDelegate: NSObject, NSApplicationDelegate, NSWindow
 
     @objc private func showSettings() {
         guard appLock.isUnlocked else { return }
+        softwareUpdates.checkWhenOpened()
         if let settingsWindow {
             popover.performClose(nil)
             settingsWindow.deminiaturize(nil)

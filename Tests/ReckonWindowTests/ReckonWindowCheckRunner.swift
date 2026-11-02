@@ -1,4 +1,5 @@
 import AppKit
+import Sparkle
 @testable import ReckonApp
 
 private struct WindowCheckFailure: Error, CustomStringConvertible {
@@ -19,6 +20,8 @@ struct ReckonWindowCheckRunner {
         Task { @MainActor in
             do {
                 try await Task.sleep(for: .milliseconds(100))
+                try runUpdateCallbackChecks()
+                print("PASS Sparkle callbacks report current, failed, and incompatible update checks")
                 try await runWindowChecks(delegate)
                 delegate.applicationWillTerminate(Notification(name: NSApplication.willTerminateNotification))
                 print("PASS Menu-bar dropdown remains available while Settings is open or inactive")
@@ -88,6 +91,33 @@ struct ReckonWindowCheckRunner {
         try sendWindowAction("toggleDashboard", to: delegate)
         try await Task.sleep(for: .milliseconds(100))
         try expectWindow(popover.isShown, "Dropdown stopped opening after a repeated menu-bar click")
+    }
+
+    @MainActor private static func runUpdateCallbackChecks() throws {
+        // Exercise the real optional delegate methods without starting Sparkle or making requests.
+        let controller = SPUStandardUpdaterController(startingUpdater: false, updaterDelegate: nil, userDriverDelegate: nil)
+        let updates = ReckonSoftwareUpdates(isDemo: true)
+        try expectWindow(updates.responds(to: #selector(SPUUpdaterDelegate.updaterDidNotFindUpdate(_:error:))),
+                         "Sparkle cannot discover the detailed no-update callback")
+        try expectWindow(updates.responds(to: #selector(SPUUpdaterDelegate.updater(_:didFinishUpdateCycleFor:error:))),
+                         "Sparkle cannot discover the completed-check callback")
+        let current = NSError(domain: SUSparkleErrorDomain, code: Int(SUError.noUpdateError.rawValue),
+                              userInfo: [SPUNoUpdateFoundReasonKey: NSNumber(value: SPUNoUpdateFoundReason.onLatestVersion.rawValue)])
+        updates.updaterDidNotFindUpdate(controller.updater, error: current)
+        try expectWindow(updates.checkState.result == .upToDate, "Current version was not reported as up to date")
+        try expectWindow(updates.checkState.latestVersion == updates.installedVersion && updates.lastCheckedAt != nil,
+                         "Completed check did not record the version and time")
+        updates.updater(controller.updater, didAbortWithError: URLError(.notConnectedToInternet))
+        try expectWindow(updates.checkState.result == .failed && updates.statusTitle == "Update check failed",
+                         "Failed check was incorrectly reported as up to date")
+        try expectWindow(updates.checkState.latestVersion == updates.installedVersion,
+                         "Failed check erased the last known release")
+        let incompatible = NSError(domain: SUSparkleErrorDomain, code: Int(SUError.noUpdateError.rawValue),
+                                   userInfo: [SPUNoUpdateFoundReasonKey: NSNumber(value: SPUNoUpdateFoundReason.systemIsTooOld.rawValue)])
+        updates.updaterDidNotFindUpdate(controller.updater, error: incompatible)
+        updates.updater(controller.updater, didFinishUpdateCycleFor: .updateInformation, error: incompatible)
+        try expectWindow(updates.checkState.result == .unavailable && !updates.checkState.isChecking,
+                         "Incompatible update was incorrectly reported as up to date")
     }
 
     @MainActor private static func sendWindowAction(_ name: String, to delegate: ReckonApplicationDelegate) throws {
