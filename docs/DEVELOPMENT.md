@@ -212,7 +212,9 @@ The app icon uses the existing Reckon monogram as a reference. The built-in imag
 
 Settings → Updates has **Check for Updates**, automatic check and automatic installation controls. Reckon checks GitHub every six hours by default. Sparkle downloads signed updates, installs them when the app quits, and can relaunch it when requested. Bank credentials, encrypted history and launch-at-login settings remain on this Mac.
 
-Updates restart with Reckon locked. The normal macOS authentication policy still applies. Demo mode never starts the updater.
+The dashboard header observes Sparkle's update state across all tabs. It shows **Update available** after discovery and **Update ready** when Sparkle stages installation. The button opens Sparkle's update window and waits while background work prevents user interaction. Skipped versions, failed updates, and checks with no update clear the indicator. Demo mode does not start the updater.
+
+Updates restart with Reckon locked. The normal macOS authentication policy still applies.
 
 Updates come from the public `deracs/reckon-native` repository. No GitHub token or sign-in is required, and the updater never reads or sends Akahu credentials. The original Reckon monorepo is separate and stays private.
 

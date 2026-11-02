@@ -25,7 +25,9 @@ private enum DashboardTab: String, CaseIterable, Identifiable {
 
 struct BankDashboardView: View {
     @ObservedObject var store: BankDashboardStore
+    @ObservedObject var softwareUpdates: ReckonSoftwareUpdates
     let openSettings: () -> Void
+    let openSoftwareUpdate: () -> Void
     let lockReckon: () -> Void
     let dismissDashboard: () -> Void
     @State private var selectedTab = DashboardTab.overview
@@ -38,6 +40,10 @@ struct BankDashboardView: View {
                 if store.isDemo { Text("SAMPLE DATA").font(.caption2.weight(.semibold)).foregroundStyle(.orange) }
                 Spacer()
                 if store.isLoading { ProgressView().controlSize(.small).accessibilityLabel("Loading stats") }
+                if let notice = softwareUpdates.updateNotice {
+                    ReckonUpdateBadge(notice: notice, canOpenUpdate: softwareUpdates.canCheckForUpdates,
+                                      openUpdate: openSoftwareUpdate)
+                }
                 Button(action: lockReckon) { Image(systemName: "lock") }
                     .buttonStyle(.plain).help("Lock Reckon").accessibilityLabel("Lock Reckon")
                 Button(action: openSettings) { Image(systemName: "gearshape") }

@@ -5,11 +5,12 @@ import Sparkle
 
 /// Uses signed, architecture-specific GitHub feeds; bank data never enters update requests.
 @MainActor
-final class ReckonSoftwareUpdates: NSObject, ObservableObject, SPUUpdaterDelegate {
+final class ReckonSoftwareUpdates: NSObject, ObservableObject, SPUUpdaterDelegate, SPUStandardUserDriverDelegate {
     @Published private(set) var canCheckForUpdates = false
     @Published private(set) var automaticallyChecks = false
     @Published private(set) var automaticallyInstalls = false
     @Published private(set) var message: String?
+    @Published private(set) var updateNotice: ReckonUpdateNotice?
     private var controller: SPUStandardUpdaterController!
     private var observations: [NSKeyValueObservation] = []
     private let isDemo: Bool
@@ -18,7 +19,7 @@ final class ReckonSoftwareUpdates: NSObject, ObservableObject, SPUUpdaterDelegat
         self.isDemo = isDemo
         super.init()
         guard !isDemo else { return }
-        controller = SPUStandardUpdaterController(startingUpdater: false, updaterDelegate: self, userDriverDelegate: nil)
+        controller = SPUStandardUpdaterController(startingUpdater: false, updaterDelegate: self, userDriverDelegate: self)
         let updater = controller.updater
         updater.sendsSystemProfile = false
         updater.userAgentString = "Reckon/\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown")"
@@ -70,7 +71,43 @@ final class ReckonSoftwareUpdates: NSObject, ObservableObject, SPUUpdaterDelegat
         request.setValue("application/octet-stream", forHTTPHeaderField: "Accept")
     }
 
+    func updater(_ updater: SPUUpdater, didFindValidUpdate item: SUAppcastItem) {
+        recordAvailableUpdate(item)
+    }
+
+    func updaterDidNotFindUpdate(_ updater: SPUUpdater) {
+        updateNotice = nil
+    }
+
+    nonisolated func standardUserDriverWillHandleShowingUpdate(_ handleShowingUpdate: Bool, forUpdate update: SUAppcastItem,
+                                                              state: SPUUserUpdateState) {
+        // Sparkle's standard user driver delivers UI callbacks on the main thread.
+        MainActor.assumeIsolated {
+            guard let url = update.fileURL, ReckonUpdateFeed.isAllowedDownload(url) else { return }
+            if state.stage == .notDownloaded {
+                recordAvailableUpdate(update)
+            } else {
+                updateNotice = .ready(version: update.displayVersionString)
+            }
+        }
+    }
+
+    func updater(_ updater: SPUUpdater, willInstallUpdateOnQuit item: SUAppcastItem,
+                 immediateInstallationBlock immediateInstallHandler: @escaping () -> Void) -> Bool {
+        if let url = item.fileURL, ReckonUpdateFeed.isAllowedDownload(url) {
+            updateNotice = .ready(version: item.displayVersionString)
+        }
+        // Sparkle retains installation ownership and its normal install-on-quit behavior.
+        return false
+    }
+
+    func updater(_ updater: SPUUpdater, userDidMake choice: SPUUserUpdateChoice, forUpdate updateItem: SUAppcastItem,
+                 state: SPUUserUpdateState) {
+        if choice == .skip { updateNotice = nil }
+    }
+
     func updater(_ updater: SPUUpdater, didAbortWithError error: any Error) {
+        updateNotice = nil
         let failure = error as NSError
         if failure.domain == SUSparkleErrorDomain {
             if failure.code == SUError.noUpdateError.rawValue {
@@ -83,6 +120,13 @@ final class ReckonSoftwareUpdates: NSObject, ObservableObject, SPUUpdaterDelegat
             }
         }
         message = "Could not check or install an update. Check your internet connection and try again."
+    }
+
+    private func recordAvailableUpdate(_ item: SUAppcastItem) {
+        guard let url = item.fileURL, ReckonUpdateFeed.isAllowedDownload(url) else { return }
+        if updateNotice?.version != item.displayVersionString {
+            updateNotice = .available(version: item.displayVersionString)
+        }
     }
 
     private func refreshSettings() {

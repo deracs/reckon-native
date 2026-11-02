@@ -1,16 +1,13 @@
 A standalone macOS menu bar app for your Akahu accounts. Requires macOS 15 or later and a Mac login password. Unlock with Touch ID, Apple Watch, or your Mac login password.
 
-This release reduces backend memory use and fixes child process cleanup after an input error.
+This release adds a software update indicator to the main dashboard.
 
-- Dashboard calculations borrow shared transaction records and avoid deep copies.
-- Safe Rust APIs replace direct unsafe calls for parent checks and retry jitter.
-- Rust tools terminate and reap child processes when input delivery fails. A regression test covers this error path.
-- Named query and forecast fields, consistent imports, and explicit invariant messages improve code clarity.
-- The developer guide and AGENTS.md now reference the Google Rust Style Guide and explain its scope for Reckon.
+- **Update available** appears beside the lock and settings icons when Sparkle finds a new version.
+- **Update ready** appears once Sparkle prepares the update for installation.
+- Click the indicator to open the update window and review or install the update.
+- The indicator stays visible across dashboard tabs. It clears for skipped versions, failed updates, or checks with no update.
 
-In local checks with 3,000 fictional transactions, median loaded backend memory fell from 13.1 to 10.7 MiB with no source delay. That is about 19% less. Startup and dashboard time improved by about 3–4% across two source-delay scenarios. Each scenario used ten fresh processes per version. These figures exclude the Swift interface and live Akahu latency.
-
-The Rust backend and shared bank and transaction logo cache remain included. Cached logos appear immediately when you change tabs. Source builds, tests, and releases require no Node or PNPM.
+The Rust backend, memory improvements, and shared bank and transaction logo cache remain included. Source builds, tests, and releases require no Node or PNPM.
 
 Authentication uses the same macOS policy as v0.7.5. Password fallback works without Touch ID. For Apple Watch approval, enable your watch in System Settings → Touch ID & Password (or Login Password). See [Apple’s setup requirements](https://support.apple.com/en-us/102442).
 

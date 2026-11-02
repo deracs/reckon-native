@@ -97,6 +97,8 @@ Reckon checks GitHub every six hours. Automatic downloads and installation are o
 Updates install when Reckon quits, or you can choose to install and relaunch immediately.
 
 For a manual check, open **Settings → Updates → Check for Updates**.
+When Reckon finds an update, **Update available** appears beside the lock and settings icons on every dashboard tab.
+It changes to **Update ready** once Sparkle prepares installation. Click the indicator to open the update window.
 Updates keep your saved connection, local history, and login preference. Authentication still applies after the app restarts.
 
 For version 0.7.1 or earlier, install the latest release manually once. Later updates use the current update feed.

@@ -74,7 +74,12 @@ final class ReckonApplicationDelegate: NSObject, NSApplicationDelegate, NSWindow
         return false
     }
 
-    @objc private func checkForSoftwareUpdates() { softwareUpdates.checkForUpdates() }
+    @objc private func checkForSoftwareUpdates() {
+        guard softwareUpdates.canCheckForUpdates else { return }
+        dismissDashboard()
+        NSApp.activate(ignoringOtherApps: true)
+        softwareUpdates.checkForUpdates()
+    }
 
     @objc private func toggleDashboard() {
         if appLock.state == .authenticating {
@@ -112,8 +117,10 @@ final class ReckonApplicationDelegate: NSObject, NSApplicationDelegate, NSWindow
         guard appLock.isUnlocked else { return }
         store.beginVisit()
         NSApp.activate(ignoringOtherApps: true)
-        let content = ReckonProtectedView(appLock: appLock) { [weak self, store = self.store!] in
-            BankDashboardView(store: store, openSettings: { [weak self] in self?.showSettings() },
+        let content = ReckonProtectedView(appLock: appLock) { [weak self, store = self.store!, softwareUpdates = self.softwareUpdates!] in
+            BankDashboardView(store: store, softwareUpdates: softwareUpdates,
+                              openSettings: { [weak self] in self?.showSettings() },
+                              openSoftwareUpdate: { [weak self] in self?.checkForSoftwareUpdates() },
                               lockReckon: { [weak self] in self?.lockReckon() },
                               dismissDashboard: { [weak self] in self?.dismissDashboard() })
         }
