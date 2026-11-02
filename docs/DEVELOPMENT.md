@@ -212,7 +212,7 @@ The selector accepts `patch`, `minor`, `major`, or an explicit stable version su
 
 The command updates the app version, build number, backend manifest, backend lockfile, and release notes. It runs Rustfmt, Clippy, the app build, Swift checks, Rust tests, code signature checks, and privacy checks. Failed checks restore the prepared files. Concurrent edits stay untouched.
 
-After successful checks, the command commits only release files and creates an annotated version tag. An atomic push sends `main` and the tag together. Existing tags stay unchanged. GitHub then builds both architectures, signs their archives, publishes the release, and signs the Sparkle feeds in `updates/`.
+After successful checks, the command commits only release files and creates an annotated version tag. An atomic push sends `main` and the tag together. The command preserves tags that already exist. GitHub then builds both architectures, signs their archives, publishes the release, and signs the Sparkle feeds in `updates/`.
 
 The command waits for that workflow, confirms both archives and checksum assets, and checks each feed's version and release asset URL. The workflow performs signature verification. The command then syncs the feed commit with `git pull --ff-only origin main` if the working tree remains clean.
 
@@ -222,7 +222,7 @@ If GitHub publication fails after the tag exists, continue with the same explici
 cargo reckon release 0.7.11 --resume
 ```
 
-Resume retries failed workflow jobs and waits for publication. It preserves the existing version, build number, release commit, and tag. `cargo reckon release --help` lists the options. The command uses the existing Actions signing secret; it needs no local export of the private key.
+Resume retries failed workflow jobs and waits for publication. It preserves the version, build number, release commit, and tag. `cargo reckon release --help` lists the options. The command uses the Actions signing secret. It needs no local export of the private key.
 
 Release access follows the repository’s visibility. The ZIP contains only the app and runtime. Each user connects their own Akahu tokens. It does not export a Keychain entry or local history.
 

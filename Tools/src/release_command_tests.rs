@@ -238,6 +238,11 @@ fn release_dry_run_leaves_files_commits_and_refs_unchanged() {
 #[test]
 fn release_checks_commit_and_push_an_annotated_tag_then_confirm_publication() {
     let fixture = ReleaseFixture::new();
+    let original_mode = fs::metadata(fixture.root.join("Resources/Info.plist"))
+        .unwrap()
+        .permissions()
+        .mode()
+        & 0o777;
     fixture
         .runner()
         .release(&ReleaseFixture::new_args())
@@ -270,7 +275,7 @@ fn release_checks_commit_and_push_an_annotated_tag_then_confirm_publication() {
             .permissions()
             .mode()
             & 0o777,
-        0o644
+        original_mode
     );
     let calls = fixture.calls();
     assert!(calls.find("cargo reckon test").unwrap() < calls.find("gh run watch").unwrap());
@@ -311,6 +316,60 @@ fn release_preserves_unrelated_edits_made_during_checks() {
     );
     assert_eq!(fixture.git(&["diff", "--name-only"]).trim(), "other.txt");
     assert!(fixture.git(&["tag", "--list"]).is_empty());
+}
+
+#[test]
+fn release_commit_hook_failure_restores_its_staged_files() {
+    let fixture = ReleaseFixture::new();
+    let original = fixture.git(&["rev-parse", "HEAD"]);
+    fixture.executable(".build/hooks/pre-commit", "#!/bin/sh\nexit 1\n");
+    assert!(
+        fixture
+            .runner()
+            .release(&ReleaseFixture::new_args())
+            .is_err()
+    );
+    assert_eq!(fixture.git(&["rev-parse", "HEAD"]), original);
+    assert!(fixture.git(&["status", "--porcelain"]).is_empty());
+    assert!(fixture.git(&["tag", "--list"]).is_empty());
+}
+
+#[test]
+fn release_rejected_atomic_push_preserves_remote_refs_and_can_resume() {
+    let fixture = ReleaseFixture::new();
+    let original = fixture.git(&["rev-parse", "HEAD"]);
+    let hook = fixture.origin.join("hooks/pre-receive");
+    fs::write(&hook, "#!/bin/sh\nexit 1\n").unwrap();
+    fs::set_permissions(&hook, fs::Permissions::from_mode(0o755)).unwrap();
+    let failure = fixture
+        .runner()
+        .release(&ReleaseFixture::new_args())
+        .unwrap_err()
+        .to_string();
+    assert!(failure.contains("--resume"));
+    assert!(
+        fixture
+            .git(&["ls-remote", "origin", "refs/heads/main"])
+            .contains(original.trim())
+    );
+    assert!(
+        fixture
+            .git(&["ls-remote", "origin", "refs/tags/v0.7.11"])
+            .is_empty()
+    );
+    let release_commit = fixture.git(&["rev-parse", "HEAD"]);
+    fs::remove_file(hook).unwrap();
+    fixture
+        .runner()
+        .release(&ReleaseFixture::args(&["0.7.11", "--resume"]))
+        .unwrap();
+    assert_eq!(fixture.git(&["rev-parse", "HEAD"]), release_commit);
+    assert_eq!(fixture.calls().matches("cargo reckon test").count(), 1);
+    assert!(
+        fixture
+            .git(&["ls-remote", "origin", "refs/heads/main"])
+            .contains(release_commit.trim())
+    );
 }
 
 #[test]

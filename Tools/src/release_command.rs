@@ -356,9 +356,15 @@ impl ReleaseRunner {
             for edit in &plan.edits {
                 println!("[release] Would update {}", edit.path);
             }
-            println!(
-                "[release] Would run checks, commit, tag, push, wait for CI, verify publication, and sync main."
-            );
+            if resume {
+                println!(
+                    "[release] Would resume the existing tag, retry failed CI jobs, verify publication, and sync main."
+                );
+            } else {
+                println!(
+                    "[release] Would run checks, commit, tag, push, wait for CI, verify publication, and sync main."
+                );
+            }
             return Ok(());
         }
         if !resume {
