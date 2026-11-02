@@ -315,8 +315,8 @@ impl ReleaseRunner {
         if resume && options.contains_key("notes") {
             return Err("Resume uses the committed release notes; omit --notes.".into());
         }
-        let plan = self.read_plan(selector, options.get("notes").map(String::as_str), resume)?;
         self.preflight(dry_run)?;
+        let plan = self.read_plan(selector, options.get("notes").map(String::as_str), resume)?;
         let tag = plan.tag();
         let local_tag = self
             .command(
@@ -392,12 +392,21 @@ impl ReleaseRunner {
     }
 
     fn prepare_commit(&self, plan: &ReleasePlan) -> ToolResult {
+        self.require_clean()?;
         let mut committed = false;
         let mut staged_by_release = false;
+        let mut applied = 0;
         let source_commit = self.git(&["rev-parse", "HEAD"])?;
         let result = (|| -> ToolResult {
             for edit in &plan.edits {
+                if fs::read_to_string(self.root.join(edit.path))? != edit.original {
+                    return Err(
+                        "Release input changed after preflight; the new edit remains untouched."
+                            .into(),
+                    );
+                }
                 write_release_file(&self.root.join(edit.path), &edit.replacement)?;
+                applied += 1;
             }
             for (label, program, args) in [
                 (
@@ -472,7 +481,7 @@ impl ReleaseRunner {
             Ok(())
         })();
         if result.is_err() && !committed {
-            self.restore_edits(plan, staged_by_release)?;
+            self.restore_edits(&plan.edits[..applied], staged_by_release)?;
         }
         if committed && result.is_err() {
             return Err(format!("Release commit is retained, but tagging failed. Resolve the Git error, create annotated tag {} on this commit, then use --resume.", plan.tag()).into());
@@ -515,8 +524,8 @@ impl ReleaseRunner {
         Ok(())
     }
 
-    fn restore_edits(&self, plan: &ReleasePlan, staged_by_release: bool) -> ToolResult {
-        for edit in &plan.edits {
+    fn restore_edits(&self, edits: &[ReleaseEdit], staged_by_release: bool) -> ToolResult {
+        for edit in edits {
             if staged_by_release
                 && self.git(&["show", &format!(":{}", edit.path)])? == edit.replacement
             {

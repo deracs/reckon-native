@@ -335,6 +335,32 @@ fn release_commit_hook_failure_restores_its_staged_files() {
 }
 
 #[test]
+fn release_stale_plan_does_not_overwrite_new_committed_inputs() {
+    let fixture = ReleaseFixture::new();
+    let runner = fixture.runner();
+    let plan = runner
+        .read_plan("patch", Some(".build/notes.md"), false)
+        .unwrap();
+    let path = fixture.root.join("Resources/Info.plist");
+    let changed = fs::read_to_string(&path)
+        .unwrap()
+        .replace("<string>22</string>", "<string>24</string>");
+    fs::write(&path, &changed).unwrap();
+    fixture.git(&["add", "Resources/Info.plist"]);
+    fixture.git(&["commit", "-m", "Concurrent source commit"]);
+    assert!(
+        runner
+            .prepare_commit(&plan)
+            .unwrap_err()
+            .to_string()
+            .contains("input changed")
+    );
+    assert_eq!(fs::read_to_string(path).unwrap(), changed);
+    assert!(fixture.git(&["status", "--porcelain"]).is_empty());
+    assert!(fixture.git(&["tag", "--list"]).is_empty());
+}
+
+#[test]
 fn release_rejected_atomic_push_preserves_remote_refs_and_can_resume() {
     let fixture = ReleaseFixture::new();
     let original = fixture.git(&["rev-parse", "HEAD"]);
