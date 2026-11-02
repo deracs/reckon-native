@@ -1,12 +1,16 @@
 A standalone macOS menu bar app for your Akahu accounts. Requires macOS 15 or later and a Mac login password. Unlock with Touch ID, Apple Watch, or your Mac login password.
 
-Source builds, tests, and releases now use Rust tools. Node and PNPM are no longer required.
+This release reduces backend memory use and fixes child process cleanup after an input error.
 
-- Rust replaces the JavaScript build, benchmark, credential import, privacy, and release tools.
-- Rust replaces the integration tests and the backend fixtures for Swift checks.
-- Rustfmt and Clippy check both Rust packages. Cargo lockfiles pin their dependencies.
+- Dashboard calculations borrow shared transaction records and avoid deep copies.
+- Safe Rust APIs replace direct unsafe calls for parent checks and retry jitter.
+- Rust tools terminate and reap child processes when input delivery fails. A regression test covers this error path.
+- Named query and forecast fields, consistent imports, and explicit invariant messages improve code clarity.
+- The developer guide and AGENTS.md now reference the Google Rust Style Guide and explain its scope for Reckon.
 
-The app includes the Rust backend and shared bank and transaction logo cache from v0.7.7. Cached logos appear immediately when you change tabs.
+In local checks with 3,000 fictional transactions, median loaded backend memory fell from 13.1 to 10.7 MiB with no source delay. That is about 19% less. Startup and dashboard time improved by about 3–4% across two source-delay scenarios. Each scenario used ten fresh processes per version. These figures exclude the Swift interface and live Akahu latency.
+
+The Rust backend and shared bank and transaction logo cache remain included. Cached logos appear immediately when you change tabs. Source builds, tests, and releases require no Node or PNPM.
 
 Authentication uses the same macOS policy as v0.7.5. Password fallback works without Touch ID. For Apple Watch approval, enable your watch in System Settings → Touch ID & Password (or Login Password). See [Apple’s setup requirements](https://support.apple.com/en-us/102442).
 

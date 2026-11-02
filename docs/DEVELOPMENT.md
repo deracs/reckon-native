@@ -46,6 +46,16 @@ Build the app before the checks. The Swift checks exercise the bundled process. 
 
 The Swift checks use an executable runner because the standalone Command Line Tools omit the Swift Testing and XCTest modules.
 
+## Rust style
+
+Use the [Google Rust Style Guide](https://google.github.io/styleguide/rustguide.html) for changes and reviews in `Backend/` and `Tools/`. These packages serve one application. Apply the guide's API design advice in that context, with simple interfaces for current needs.
+
+Use stable Rustfmt and Clippy with warnings as errors. Review ownership, error paths, imports, and named fields manually. Automated checks do not enforce the full guide.
+
+Prefer borrowed records over deep copies. Import items from one module per `use` statement. Use named fields for records with distinct meanings. Explain invariants in `expect` messages. Use safe APIs where available. Any necessary `unsafe` block needs a `SAFETY` comment that explains its requirements.
+
+Rules marked `[chrome]` or `[Fuchsia]` apply to those platforms. Reckon keeps its Cargo layout, Tokio runtime, and standard synchronization types. Use `Arc` when concurrent requests need shared ownership of a cached snapshot.
+
 ## Backend checks and tools
 
 `cargo reckon check` runs Rustfmt and Clippy with warnings as errors for the backend and tools. `cargo reckon test` runs Rust calculation checks, HTTP integration checks, privacy checks, and update-signature checks. `cargo reckon fmt` formats both Rust packages.
