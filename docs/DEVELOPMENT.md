@@ -79,9 +79,11 @@ Demo mode displays a sample-data label and skips authentication for UI checks. I
 
 ## Data and calculations
 
-The dropdown has one row of six icon tabs with short visible labels and full hover labels: **Overview**, **Accounts**, **Activity**, **Dead reckoning**, **The bleed**, and **Standing orders**. Each icon has an accessibility label.
+The dropdown has six tabs with visible labels: **Overview**, **Accounts**, **Activity**, **Forecast**, **Spending**, and **Bills**. The last three tabs use **Dead reckoning**, **The bleed**, and **Standing orders** as their full section names and hover labels. Each icon has an accessibility label. The dashboard uses separate cards for each group of figures.
 
 Settings uses a labelled sidebar for General, Connection, Alerts, and Updates. The transparent title bar retains the native Mac window controls. General contains launch-at-login and shortcut controls. Connection shows saved-connection status, reveals token fields on request, and confirms before disconnecting and clearing local history. Token edits and alert amounts use explicit save actions; toggles apply immediately.
+
+Balance limits and balance targets use bank names, logos, and account counts as group headers. Account rows retain their own currency labels. Unavailable logos use a bank icon. The [README previews](../README.md#screenshots) show the current dashboard and Settings with fictional data.
 
 Small info icons beside headings hold longer explanations: hover for a tooltip or click for a readable popover. Currency and estimate warnings remain visible. A tab change returns that list to the top.
 

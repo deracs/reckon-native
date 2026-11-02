@@ -7,11 +7,11 @@ Reckon connects to Akahu and runs as a standalone app. You do not need a termina
 
 ## Screenshots
 
-These screenshots show fictional demo data. Demo mode does not read saved credentials or bank history.
+These app previews show fictional demo data. Demo mode does not read saved credentials or bank history.
 
-| Overview | Accounts | Dead reckoning |
+| Overview | Accounts | Forecast |
 | --- | --- | --- |
-| <a href="docs/screenshots/overview-demo.jpg"><img src="docs/screenshots/overview-demo.jpg" alt="Overview with the SAMPLE DATA label and fictional balances" width="250"></a> | <a href="docs/screenshots/accounts-demo.jpg"><img src="docs/screenshots/accounts-demo.jpg" alt="Sample Bank accounts with fictional balances and history" width="250"></a> | <a href="docs/screenshots/dead-reckoning-demo.jpg"><img src="docs/screenshots/dead-reckoning-demo.jpg" alt="Dead reckoning with a fictional 30-day balance estimate" width="250"></a> |
+| <a href="docs/screenshots/overview-demo.jpg"><img src="docs/screenshots/overview-demo.jpg" alt="Overview cards with fictional liquid balance, payday, cashflow, and data freshness" width="250"></a> | <a href="docs/screenshots/accounts-demo.jpg"><img src="docs/screenshots/accounts-demo.jpg" alt="Sample Bank accounts with a bank total, separate account balances, and balance trends" width="250"></a> | <a href="docs/screenshots/dead-reckoning-demo.jpg"><img src="docs/screenshots/dead-reckoning-demo.jpg" alt="Forecast tab with a fictional 30-day balance estimate" width="250"></a> |
 
 Click a screenshot to view it at full size.
 
@@ -54,18 +54,36 @@ Reckon reads account data. It cannot move money or make payments.
 
 ## Find your way around
 
-Hover over a tab icon to see its name. Hover over a small **info icon** for an explanation, or click it.
+The dashboard has six labeled tabs and separate cards for each group of figures.
+Hover over a tab for its full section name. Hover over a small **info icon** for an explanation, or click it.
 
 | Tab | What it shows |
 | --- | --- |
 | **Overview** | Liquid balance, this month’s income and spending, estimated payday, and data freshness. |
 | **Accounts** | Accounts grouped by bank, with bank logos and totals for each currency. Click the whole bank row to expand it. |
 | **Activity** | Recent transactions, search, and a filter for transactions first seen since your previous visit. |
-| **Dead reckoning** | A 30-day balance estimate from regular income and bills. Everyday discretionary spending is not included. |
-| **The bleed** | The five largest spending categories this month, compared with the previous three months’ average. |
-| **Standing orders** | Detected regular charges and estimated bills due in the next seven days. |
+| **Forecast** | **Dead reckoning:** a 30-day balance estimate from regular income and bills. The estimate excludes everyday discretionary spending. |
+| **Spending** | **The bleed:** the five largest spending categories this month, compared with the previous three months’ average. |
+| **Bills** | **Standing orders:** detected regular charges and estimated bills due in the next seven days. |
 
 The menu bar shows only the chart icon. Your balances appear inside the dropdown after you unlock it.
+
+## Settings
+
+The Settings window has four sections in its sidebar. Its title bar retains the standard Mac window controls.
+
+| Section | Controls and details |
+| --- | --- |
+| **General** | Launch at login, the keyboard shortcut, and local history status. |
+| **Connection** | Akahu connection status and token fields. Token changes require an explicit save. Disconnect requires confirmation. |
+| **Alerts** | Notifications, balance limits, balance targets, and deposit alerts. Bank names and icons separate the account rows. |
+| **Updates** | Installed and latest versions, last check time, check result, and automatic update options. |
+
+| Connection | Alerts by bank | Updates |
+| --- | --- | --- |
+| <a href="docs/screenshots/settings-connection-demo.jpg"><img src="docs/screenshots/settings-connection-demo.jpg" alt="Connection settings with a sidebar and sample connection status" width="250"></a> | <a href="docs/screenshots/settings-alerts-demo.jpg"><img src="docs/screenshots/settings-alerts-demo.jpg" alt="Balance limits with separate Sample Bank and Sample Investments groups" width="250"></a> | <a href="docs/screenshots/settings-updates-demo.jpg"><img src="docs/screenshots/settings-updates-demo.jpg" alt="Updates settings with installed version, latest version, last check time, and result" width="250"></a> |
+
+Demo mode disables connection changes, notifications, and update checks. Click a preview to view it at full size.
 
 ## Everyday use
 
