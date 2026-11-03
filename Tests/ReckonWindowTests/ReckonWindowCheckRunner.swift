@@ -1,5 +1,7 @@
 import AppKit
+import SwiftUI
 import Sparkle
+import ReckonCore
 @testable import ReckonApp
 
 private struct WindowCheckFailure: Error, CustomStringConvertible {
@@ -31,8 +33,10 @@ struct ReckonWindowCheckRunner {
                 try runUpdateCallbackChecks()
                 print("PASS Sparkle callbacks report current, failed, and incompatible update checks")
                 try await runWindowChecks(delegate)
+                try await runDesktopWindowChecks(delegate)
                 delegate.applicationWillTerminate(Notification(name: NSApplication.willTerminateNotification))
                 print("PASS Menu-bar dropdown remains available while Settings is open or inactive")
+                print("PASS Desktop window shares the session, visit, settings and menu-bar lifecycle")
                 exit(0)
             } catch {
                 delegate.applicationWillTerminate(Notification(name: NSApplication.willTerminateNotification))
@@ -120,6 +124,73 @@ struct ReckonWindowCheckRunner {
         try expectWindow(!popover.isShown, "Second menu-bar click did not dismiss the dropdown")
         try await sendWindowAction("toggleDashboard", to: delegate)
         try expectWindow(popover.isShown, "Dropdown stopped opening after a repeated menu-bar click")
+    }
+
+    @MainActor private static func runDesktopWindowChecks(_ delegate: ReckonApplicationDelegate) async throws {
+        guard let store = Mirror(reflecting: delegate).children.first(where: { $0.label == "store" })?.value as? BankDashboardStore,
+              let appLock = Mirror(reflecting: delegate).children.first(where: { $0.label == "appLock" })?.value as? ReckonAppLock,
+              let navigation = Mirror(reflecting: delegate).children.first(where: { $0.label == "desktopNavigation" })?.value as? ReckonDesktopNavigation else {
+            throw WindowCheckFailure(description: "Could not inspect the shared desktop dependencies")
+        }
+        let popover = try storedPopover(delegate)
+        popover.performClose(nil)
+        try expectWindow(NSApp.sendAction(NSSelectorFromString("openDesktop"), to: delegate, from: nil), "Open app action was not connected")
+        try await waitForWindowState("desktop window") { desktopWindow()?.isKeyWindow == true && desktopWindow()?.occlusionState.contains(.visible) == true }
+        guard let desktop = desktopWindow(), let host = desktop.contentViewController as? NSHostingController<ReckonDesktopView> else {
+            throw WindowCheckFailure(description: "Desktop window did not host the protected desktop view")
+        }
+        try expectWindow(host.rootView.store === store && host.rootView.appLock === appLock,
+                         "Desktop created a separate data store or authentication session")
+        try expectWindow(desktop.frame.width >= 1000 && desktop.frame.height >= 700, "Desktop hosting collapsed the native window frame")
+        try expectWindow(NSApp.activationPolicy() == .regular, "Desktop is missing from the Dock and Command–Tab")
+        let baseline = store.visitSummary?.since
+        try expectWindow(baseline != nil, "Desktop did not begin its comparison visit")
+        try await sendWindowAction("toggleDashboard", to: delegate)
+        try expectWindow(desktop.isVisible, "Opening the dropdown hid the desktop window")
+        popover.performClose(nil)
+        store.beginVisit()
+        try expectWindow(store.visitSummary?.since == baseline, "Dropdown reopening reset the desktop comparison baseline")
+        try await sendWindowAction("showSettings", to: delegate)
+        try expectWindow(desktop.isVisible, "Settings hid the desktop dashboard")
+        try expectWindow(NSApp.sendAction(NSSelectorFromString("searchDesktop"), to: delegate, from: nil), "Desktop search action was not connected")
+        try await waitForWindowState("desktop search") { navigation.section == .activity && desktop.isKeyWindow }
+        try expectWindow(desktopWindow() === desktop, "Search created a duplicate desktop window")
+        navigation.selectBank("Sample Bank")
+        navigation.selectAccount("spending")
+        navigation.search = "coffee"
+        try expectWindow(navigation.section == .activity && navigation.accountID == "spending", "Account navigation did not scope activity")
+        try await performWindowTransition("desktop minimization", completion: NSWindow.didMiniaturizeNotification, window: desktop) {
+            desktop.performMiniaturize(nil)
+        }
+        try await sendWindowAction("toggleDashboard", to: delegate)
+        try expectWindow(desktop.isMiniaturized && popover.isShown, "Minimized desktop blocked the normal menu-bar dropdown")
+        try await performWindowTransition("desktop restoration", completion: NSWindow.didDeminiaturizeNotification, window: desktop) {
+            try expectWindow(NSApp.sendAction(NSSelectorFromString("openDesktop"), to: delegate, from: nil), "Desktop reopen failed")
+        }
+        try expectWindow(desktopWindow() === desktop, "Reopening created a second desktop window")
+        try expectWindow(NSApp.sendAction(NSSelectorFromString("lockReckon"), to: delegate, from: nil), "Lock action was not connected")
+        try await waitForWindowState("shared desktop lock") { !appLock.isUnlocked && !popover.isShown }
+        try expectWindow(navigation.search.isEmpty && navigation.bankID == nil && navigation.accountID == nil && navigation.transactionID == nil,
+                         "Lock retained private desktop search or selection")
+        try expectWindow(desktop.isVisible, "Desktop lock removed the window instead of its private content")
+        try expectWindow(NSApp.sendAction(NSSelectorFromString("unlockDesktop"), to: delegate, from: nil), "Desktop unlock was not connected")
+        try await waitForWindowState("demo desktop unlock") { appLock.isUnlocked }
+        desktop.setContentSize(NSSize(width: 1100, height: 740))
+        let size = desktop.frame.size
+        desktop.close()
+        try await waitForWindowState("desktop closed") { desktopWindow() == nil }
+        try await sendWindowAction("toggleDashboard", to: delegate)
+        try expectWindow(popover.isShown, "Closing the desktop disabled the menu-bar icon")
+        try expectWindow(NSApp.sendAction(NSSelectorFromString("openDesktop"), to: delegate, from: nil), "Desktop could not reopen after close")
+        try await waitForWindowState("desktop frame restoration") { desktopWindow()?.occlusionState.contains(.visible) == true }
+        guard let reopened = desktopWindow() else { throw WindowCheckFailure(description: "Desktop did not reopen") }
+        try expectWindow(abs(reopened.frame.width - size.width) < 2 && abs(reopened.frame.height - size.height) < 2,
+                         "Desktop did not retain the resized window frame")
+        reopened.close()
+    }
+
+    @MainActor private static func desktopWindow() -> NSWindow? {
+        NSApp.windows.first { $0.title == "Reckon" && $0.isVisible }
     }
 
     @MainActor private static func runUpdateCallbackChecks() throws {

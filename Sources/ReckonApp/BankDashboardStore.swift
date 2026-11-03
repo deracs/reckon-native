@@ -142,6 +142,7 @@ final class BankDashboardStore: ObservableObject {
     }
 
     func beginVisit() {
+        guard !visitIsActive else { return }
         visitIsActive = true
         visitBaseline = journal.lastViewed
         updateVisit()

@@ -9,9 +9,7 @@ struct BankActivityView: View {
 
     private var rows: [BankTransaction] {
         let all = onlyNew ? (store.visitSummary?.newTransactions ?? []) : (store.dashboard?.transactions.value ?? [])
-        return all.filter { row in
-            search.isEmpty || "\(row.displayName) \(row.description) \(row.category ?? "")".localizedCaseInsensitiveContains(search)
-        }
+        return BankActivityFilter(search: search).apply(to: all, accounts: store.dashboard?.accounts ?? [])
     }
 
     var body: some View {

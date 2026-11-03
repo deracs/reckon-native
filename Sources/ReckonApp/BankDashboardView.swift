@@ -2,46 +2,16 @@ import AppKit
 import ReckonCore
 import SwiftUI
 
-private enum DashboardTab: String, CaseIterable, Identifiable {
-    case overview = "Overview"
-    case accounts = "Accounts"
-    case activity = "Activity"
-    case forecast = "Dead reckoning"
-    case spending = "The bleed"
-    case standingOrders = "Standing orders"
-
-    var id: Self { self }
-    var shortLabel: String {
-        switch self {
-        case .overview: "Overview"
-        case .accounts: "Accounts"
-        case .activity: "Activity"
-        case .forecast: "Forecast"
-        case .spending: "Spending"
-        case .standingOrders: "Bills"
-        }
-    }
-    var systemImage: String {
-        switch self {
-        case .overview: "chart.bar.xaxis"
-        case .accounts: "building.columns"
-        case .activity: "list.bullet.rectangle"
-        case .forecast: "chart.xyaxis.line"
-        case .spending: "flame"
-        case .standingOrders: "calendar.badge.clock"
-        }
-    }
-}
-
 struct BankDashboardView: View {
     @ObservedObject var store: BankDashboardStore
     @ObservedObject var softwareUpdates: ReckonSoftwareUpdates
     let openSettings: () -> Void
+    let openDesktop: () -> Void
     let openSoftwareUpdate: () -> Void
     let lockReckon: () -> Void
     let dismissDashboard: () -> Void
     var isWindow = false
-    @State private var selectedTab = DashboardTab.overview
+    @State private var selectedTab = ReckonDashboardSection.overview
     @State private var expandedBanks: Set<String> = []
 
     var body: some View {
@@ -69,7 +39,7 @@ struct BankDashboardView: View {
 
             if let dashboard = store.dashboard {
                 HStack(spacing: 3) {
-                    ForEach(DashboardTab.allCases) { tab in
+                    ForEach(ReckonDashboardSection.allCases) { tab in
                         Button { selectedTab = tab } label: {
                             VStack(spacing: 7) {
                                 Image(systemName: tab.systemImage).font(.system(size: 16))
@@ -126,6 +96,8 @@ struct BankDashboardView: View {
                     .disabled(!store.isConfigured || store.isLoading || store.isDemo)
                     .help("Read the current Akahu data. Bank data refreshes separately.")
                 Spacer()
+                Button("Open app", systemImage: "arrow.up.left.and.arrow.down.right", action: openDesktop)
+                    .help("Open the desktop dashboard")
                 Button("Quit") { NSApp.terminate(nil) }.keyboardShortcut("q")
             }
             .buttonStyle(.borderless).font(.callout)

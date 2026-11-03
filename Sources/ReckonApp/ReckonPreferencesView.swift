@@ -38,6 +38,7 @@ struct ReckonPreferencesView: View {
     @State private var changingPermission = false
     @State private var launchAtLogin = false
     @State private var loginMessage: String?
+    @AppStorage(ReckonDesktopPreferences.launchKey) private var openDesktopAtLaunch = true
 
     var body: some View {
         HStack(spacing: 0) {
@@ -280,6 +281,9 @@ struct ReckonPreferencesView: View {
                 }
                     .disabled(store.isDemo)
                 if let loginMessage { Text(loginMessage).font(.caption).foregroundStyle(.secondary) }
+                Toggle("Open desktop window at launch", isOn: $openDesktopAtLaunch).disabled(store.isDemo)
+                Text("Turn this off to start in the menu bar. Open the desktop dashboard from Open app or Window → Open Reckon.")
+                    .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 Divider()
                 Toggle(isOn: Binding(get: { shortcut.isEnabled }, set: { shortcut.setEnabled($0) })) {
                     Text("Global keyboard shortcut").frame(maxWidth: .infinity, alignment: .leading)
