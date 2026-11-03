@@ -18,6 +18,7 @@ mkdir -p "$app_dir/Contents/Frameworks" "$app_dir/Contents/MacOS" "$app_dir/Cont
 cp "$binary_dir/Reckon" "$app_dir/Contents/MacOS/Reckon"
 cp "$project_dir/Resources/Info.plist" "$app_dir/Contents/Info.plist"
 cp "$project_dir/Resources/Reckon.icns" "$app_dir/Contents/Resources/Reckon.icns"
+ditto "$project_dir/Resources/Fonts" "$app_dir/Contents/Resources/Fonts"
 cp "$project_dir/.build/rust/release/reckon-backend" "$app_dir/Contents/Helpers/reckon-backend"
 cp "$project_dir/.build/backend/THIRD-PARTY-NOTICES.txt" "$app_dir/Contents/Resources/Backend/THIRD-PARTY-NOTICES.txt"
 sparkle_dir="$project_dir/.build/artifacts/sparkle/Sparkle"

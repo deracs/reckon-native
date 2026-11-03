@@ -64,7 +64,7 @@ struct ReckonDesktopView: View {
             HStack(spacing: 9) {
                 Image(nsImage: NSImage(named: NSImage.applicationIconName) ?? NSImage())
                     .resizable().frame(width: 29, height: 29)
-                Text("Reckon").font(.system(size: 22, weight: .semibold))
+                Text("Reckon").font(ReckonBrandTypography.wordmark).tracking(-0.8)
             }.padding(.horizontal, 10)
             VStack(spacing: 4) {
                 ForEach(ReckonDashboardSection.allCases) { section in

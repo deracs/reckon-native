@@ -102,6 +102,8 @@ A visit begins only once while a financial surface is open. Opening or closing t
 
 The desktop uses a light appearance, blue navigation, and the same visible currency, forecast, partial-failure, and source-freshness warnings as the dropdown. The [README](../README.md#desktop-preview) lists shortcuts and sample screenshots. The [design reference](design/README.md) contains the generated concept, not an app screenshot.
 
+The desktop name uses bundled Newsreader SemiBold at 26 points, matching the web wordmark's typeface. `ReckonBrandTypography` registers it only for this process and sets its weight and optical-size axes. Other text uses the macOS system font. The build includes the font and its SIL Open Font License from `Resources/Fonts`; no system font installation or download is required at runtime.
+
 ## Data and calculations
 
 The dropdown has six tabs with visible labels: **Overview**, **Accounts**, **Activity**, **Forecast**, **Spending**, and **Bills**. The last three tabs use **Dead reckoning**, **The bleed**, and **Standing orders** as their full section names and hover labels. Each icon has an accessibility label. The dashboard uses separate cards for each group of figures.
