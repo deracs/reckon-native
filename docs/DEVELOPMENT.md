@@ -47,7 +47,17 @@ Build the app before the checks. The Swift checks exercise the bundled process. 
 
 The Swift checks use an executable runner because the standalone Command Line Tools omit the Swift Testing and XCTest modules.
 
-The window lifecycle checks require a logged-in macOS desktop. They drive the app's actual menu-bar and Settings actions with sample data, without reading credentials or starting a backend. They cover reopening the dropdown while Settings is visible, inactive, hidden, minimized, or closed, and restoring the existing Settings window. They also exercise Sparkle's completion callbacks without network requests. Core checks cover the automatic-check cooldown, preferences, and saved results.
+The window lifecycle checks require an idle, logged-in macOS desktop. They drive the app's actual menu-bar and Settings actions with sample data, without reading credentials or starting a backend. They cover reopening the dropdown while Settings is visible, inactive, hidden, minimized, or closed, and restoring the existing Settings window. They also exercise Sparkle's completion callbacks without network requests. Core checks cover the automatic-check cooldown, preferences, and saved results.
+
+The inactive-Settings check uses a separate fixture app for the focus handoff. It waits for macOS to activate that app before the next menu-bar click. This prevents a delayed deactivation that can close a later dropdown. Both fixture apps exit after the check.
+
+Window checks wait for activation, visibility, focus, and native minimize/restore completion events. Visibility checks also wait for macOS to report the window onscreen. Each wait has a three-second timeout and returns control to AppKit between actions. The checks never retry a failed click.
+
+To check for intermittent window failures, compile once and repeat the suite with fresh app processes:
+
+```sh
+./scripts/check-window-lifecycle.sh --runs 30
+```
 
 ## Rust style
 
