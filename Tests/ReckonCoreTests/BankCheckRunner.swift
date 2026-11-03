@@ -32,6 +32,8 @@ private struct BankCheck {
         let backend = BundledBackendTests()
         let journal = BankJournalTests()
         var checks: [BankCheck] = [
+            BankCheck(name: "Bill records retain account/currency metadata and decode old payloads") { try BankBillAccountTests().billModelsRetainAccountCurrencyAndOptionalMetadata() },
+            BankCheck(name: "Charge alert baselines remain separate for the same merchant on different accounts") { try BankBillAccountTests().chargeAlertsSeparateAccountsAndResetPooledBaselines() },
             BankCheck(name: "Desktop activity bank and account scopes intersect") { try BankActivityFilterTests().bankAndAccountFiltersIntersectWithoutLeakingOtherBanks() },
             BankCheck(name: "Activity search includes bank, account, category, currency and description") { try BankActivityFilterTests().searchIncludesMerchantDescriptionCategoryBankAccountAndCurrency() },
             BankCheck(name: "Activity filtering retains page order, money and orphaned transactions") { try BankActivityFilterTests().emptySearchRetainsPageOrderMoneyCurrencyAndOrphanedRows() },

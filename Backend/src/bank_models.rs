@@ -119,7 +119,10 @@ impl Serialize for BankTransaction {
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct RecurringCharge {
+    pub(crate) account_id: AccountId,
+    pub(crate) currency: String,
     pub(crate) merchant: String,
+    pub(crate) merchant_logo: Option<String>,
     pub(crate) category: Option<String>,
     pub(crate) cadence: &'static str,
     pub(crate) occurrences: usize,

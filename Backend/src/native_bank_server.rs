@@ -216,7 +216,7 @@ pub(crate) async fn serve_bank_request(
                 .await?;
             let cleaned: Vec<_> = filter_bank_transfers(history.iter(), exclude)
                 .into_iter()
-                .filter(|tx| ids.contains(&tx.account_id))
+                .filter(|tx| ids.contains(&tx.account_id) && tx.currency == "NZD")
                 .collect();
             return Ok(forecast_bank_cashflow(
                 accounts

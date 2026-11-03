@@ -123,17 +123,17 @@ public struct BankJournal: Codable, Sendable {
             seenDepositTransactionIDs = (seenDepositTransactionIDs ?? []).union(ids)
         }
         if let forecast = dashboard.forecast.value {
-            var charges: [String: Decimal] = [:]
+            var charges: [String: (name: String, amount: Decimal)] = [:]
             for event in forecast.events where event.kind == "recurring_charge" {
-                charges[event.description] = abs(event.amount.value)
+                charges[recurringChargeKey(for: event)] = (event.description, abs(event.amount.value))
             }
-            for (name, current) in charges {
-                if notificationsEnabled, chargeIncreaseAlerts, let previous = previousCharges[name], current >= previous + Decimal(1) / 100 {
-                    found.append(BankAlert(date: dashboard.fetchedAt, kind: .chargeIncrease, subject: name,
-                                           previous: previous, current: current, currency: "NZD"))
+            for (key, charge) in charges {
+                if notificationsEnabled, chargeIncreaseAlerts, let previous = previousCharges[key], charge.amount >= previous + Decimal(1) / 100 {
+                    found.append(BankAlert(date: dashboard.fetchedAt, kind: .chargeIncrease, subject: charge.name,
+                                           previous: previous, current: charge.amount, currency: "NZD"))
                 }
             }
-            previousCharges = charges
+            previousCharges = charges.mapValues(\.amount)
         }
         alerts = Array((found + alerts).prefix(30))
         return found
@@ -142,6 +142,13 @@ public struct BankJournal: Codable, Sendable {
     /// Starts a new deposit baseline after changing the deposit threshold.
     public mutating func resetDepositBaseline() {
         seenDepositTransactionIDs = nil
+    }
+
+    /// Account-scoped patterns establish new baselines instead of reusing a pooled merchant amount.
+    private func recurringChargeKey(for event: BankForecastEvent) -> String {
+        guard let accountID = event.accountId else { return event.description }
+        // Length prefixes keep arbitrary account and merchant strings from colliding at separators.
+        return [accountID, event.currency ?? "NZD", event.description].map { "\($0.utf8.count):\($0)" }.joined()
     }
 
     public func history(for account: BankAccount) -> [BankBalanceSample] {

@@ -14,7 +14,7 @@ extension BankDashboard {
             (7, "Employer", "6400.00", "expected_income"), (12, "Internet", "-85.00", "recurring_charge"),
             (19, "Rent", "-600.00", "recurring_charge")]
         let events = sampleEvents.map { offset, name, amount, kind in
-            "{\"date\":\"\(BankCalendar.addDays(offset, to: window.today) ?? window.today)\",\"description\":\"\(name)\",\"amount\":\"\(amount)\",\"kind\":\"\(kind)\"}"
+            "{\"date\":\"\(BankCalendar.addDays(offset, to: window.today) ?? window.today)\",\"description\":\"\(name)\",\"amount\":\"\(amount)\",\"kind\":\"\(kind)\",\"accountId\":\"\(name == "Rent" ? "savings" : "spending")\",\"currency\":\"NZD\"}"
         }.joined(separator: ",")
         var balance = Decimal(string: "12480.45") ?? 0
         let points = (0...30).map { offset in
@@ -29,7 +29,7 @@ extension BankDashboard {
             """)),
             spending: .loaded(decode(#"[{"category":"Groceries","spent":"645.30","transactionCount":14},{"category":"Rent","spent":"1800.00","transactionCount":3},{"category":"Takeaways","spent":"180.00","transactionCount":9}]"#)),
             previousSpending: .loaded(decode(#"[{"category":"Groceries","spent":"1800.00","transactionCount":39},{"category":"Rent","spent":"5400.00","transactionCount":9},{"category":"Takeaways","spent":"457.62","transactionCount":23}]"#)),
-            standingOrders: .loaded(decode(#"[{"merchant":"Rent","cadence":"weekly","occurrences":24,"averageAmount":"600.00","lastDate":"2026-10-19"},{"merchant":"Power","cadence":"monthly","occurrences":6,"averageAmount":"145.70","lastDate":"2026-10-12"},{"merchant":"Internet","cadence":"monthly","occurrences":6,"averageAmount":"85.00","lastDate":"2026-10-10"}]"#)),
+            standingOrders: .loaded(decode(#"[{"merchant":"Rent","accountId":"savings","currency":"NZD","cadence":"weekly","occurrences":24,"averageAmount":"600.00","lastDate":"2026-10-19"},{"merchant":"Power","accountId":"spending","currency":"NZD","cadence":"monthly","occurrences":6,"averageAmount":"145.70","lastDate":"2026-10-12"},{"merchant":"Internet","accountId":"spending","currency":"NZD","cadence":"monthly","occurrences":6,"averageAmount":"85.00","lastDate":"2026-10-10"}]"#)),
             freshness: .loaded(decode("""
             [{"accountId":"spending","accountName":"Everyday","balanceRefreshedAt":"\(timestamp)","transactionsRefreshedAt":"\(timestamp)"},{"accountId":"savings","accountName":"Rainy day","balanceRefreshedAt":"\(timestamp)","transactionsRefreshedAt":"\(timestamp)"}]
             """)),

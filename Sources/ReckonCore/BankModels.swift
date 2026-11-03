@@ -53,6 +53,9 @@ public struct CategorySpending: Decodable, Sendable {
 }
 
 public struct StandingOrder: Decodable, Sendable {
+    public let accountId: String?
+    public let currency: String?
+    public let merchantLogo: String?
     public let merchant: String
     public let category: String?
     public let cadence: String
