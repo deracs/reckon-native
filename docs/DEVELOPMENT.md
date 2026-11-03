@@ -102,6 +102,12 @@ A visit begins only once while a financial surface is open. Opening or closing t
 
 The desktop uses a light appearance, blue navigation, and the same visible currency, forecast, partial-failure, and source-freshness warnings as the dropdown. The [README](../README.md#desktop-app) lists shortcuts and sample screenshots. The [design reference](design/README.md) contains the generated concept, not an app screenshot.
 
+`BankDesktopBillsView` limits its content width and separates upcoming NZD estimates from recurring payments. Each row shows its source bank, account, and currency. Missing accounts retain an explicit fallback. Merchant artwork uses source metadata and the existing memory cache.
+
+`BankDesktopSpendingView` stores the bar/pie preference under `ReckonSpendingChartStyle` in UserDefaults. Both charts use the same month-to-date category totals. Bars show the five largest categories. The pie includes all categories and combines smaller categories in **Other categories**. Its legend supports category selection.
+
+The comparison table retains the five largest categories and the previous three full months’ average. A date label and an explanation for uncategorized data distinguish this period from Activity’s six-month page.
+
 The muted lowercase `reckon.` wordmark sits beneath **Lock Reckon** in the sidebar, matching the web brand. Navigation stays in the sidebar, with its first row aligned to the page heading. The desktop name uses bundled Newsreader SemiBold at 26 points, matching the web wordmark's typeface. `ReckonBrandTypography` registers it only for this process and sets its weight and optical-size axes. Other text uses the macOS system font. The build includes the font and its SIL Open Font License from `Resources/Fonts`; no system font installation or download is required at runtime.
 
 ## Data and calculations
@@ -136,7 +142,9 @@ The decoded cache has an 8 MiB budget and a limit of 256 entries. Images have at
 
 `ReckonImageChecks` renders fictional logos in an offscreen window. It checks the first frame after twenty tab recreations, shared requests, mid-request tab changes, changed URLs, error fallbacks, and thumbnail dimensions.
 
-The backend uses Akahu source data. It does not use the web app's database, saved category overrides, or category rules. The summary endpoints combine currencies without conversion. If the accounts include foreign currencies, the app labels those totals and omits the dollar symbol. Account balances retain their currency.
+The backend uses Akahu source data. It does not use the web app's database, saved category overrides, or category rules. Cashflow and category totals combine currencies without conversion. Recurring patterns retain their source currency. If the accounts include foreign currencies, the app labels those totals and omits the dollar symbol. Account balances retain their currency.
+
+Recurring detection groups transactions by account ID, currency, and normalized merchant. It preserves the existing cadence thresholds and amount-variation limit. Forecast events carry the account ID, currency, and optional merchant logo. Only NZD transactions from liquid accounts contribute to the NZD forecast. Account separation can change estimates that previously pooled payments across accounts. Swift accepts responses without the added metadata for compatibility.
 
 The app reads stats every five minutes. **Reload stats** reads them immediately. Neither action requests a bank refresh. Failed summary endpoints leave account balances visible. A failed account request retains the previous snapshot and displays an error.
 
@@ -155,6 +163,8 @@ Alerts are off initially. Open Settings → Alerts to enable notifications and c
 Deposit alerts use newly seen transactions from the latest 100 non-transfer activity records. They apply to NZD deposits at or above the configured minimum. The first successful activity fetch after the threshold changes sets a baseline; late imports may count as new, and deposits outside the activity page can be missed. Balance target alerts trigger on crossings from below to at-or-above the selected account target and can trigger again after the balance falls below it. A currency change clears that account’s target.
 
 Balance alerts trigger on crossings from at-or-above to below the chosen limit, with no first-fetch or repeated-below alerts. A currency change clears that account’s limit. Standing order alerts compare the NZD recurring estimates used by Dead reckoning. A first observation sets the baseline. Repeats or decreases do not alert. These are changes in detected estimates, not confirmation that a merchant changed its price.
+
+Recurring charge alert baselines use account ID, currency, and merchant. Metadata changes establish a new baseline without an alert. Legacy merchant-only records remain readable. An increase on one account does not change another account’s baseline.
 
 Notifications have no sound and hide account names and amounts. Open Reckon to view details through the normal unlocked session. The app reads data every five minutes while its interface is locked. Alerts need Reckon to remain open with access to bank data. They do not request an upstream bank refresh.
 

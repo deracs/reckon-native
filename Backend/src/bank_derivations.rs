@@ -1,4 +1,6 @@
-use crate::bank_models::{BankTransaction, Money, RecurringCharge, TransactionId, zero_money};
+use crate::bank_models::{
+    AccountId, BankTransaction, Money, RecurringCharge, TransactionId, zero_money,
+};
 use bigdecimal::{BigDecimal, Signed, ToPrimitive, Zero};
 use chrono::{Duration, NaiveDate};
 use serde_json::{Value, json};
@@ -114,7 +116,7 @@ pub(crate) enum RecurringDirection {
     Spending,
 }
 
-/// Detect stable merchant amounts and cadence; retain the original 25% variation threshold.
+/// Detect stable merchant amounts within each account and currency, retaining the 25% variation threshold.
 pub(crate) fn detect_bank_recurring(
     transactions: &[&BankTransaction],
     minimum: f64,
@@ -134,10 +136,12 @@ pub(crate) fn detect_bank_recurring(
         if key.is_empty() {
             continue;
         }
-        let index = *indexes.entry(key).or_insert_with(|| {
-            groups.push(Vec::new());
-            groups.len() - 1
-        });
+        let index = *indexes
+            .entry((tx.account_id.clone(), tx.currency.clone(), key))
+            .or_insert_with(|| {
+                groups.push(Vec::new());
+                groups.len() - 1
+            });
         groups[index].push(tx);
     }
     let mut results = Vec::new();
@@ -179,11 +183,14 @@ pub(crate) fn detect_bank_recurring(
         let first = bucket[0];
         let last = bucket[bucket.len() - 1];
         results.push(RecurringCharge {
+            account_id: first.account_id.clone(),
+            currency: first.currency.clone(),
             merchant: first
                 .merchant
                 .clone()
                 .unwrap_or_else(|| first.description.clone()),
             category: first.category.clone(),
+            merchant_logo: bucket.iter().find_map(|tx| tx.merchant_logo.clone()),
             cadence,
             occurrences: bucket.len(),
             average_amount: Money(average).rounded(),
@@ -214,11 +221,15 @@ pub(crate) fn detect_bank_recurring(
 }
 
 #[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 struct ForecastEvent {
     date: NaiveDate,
     description: String,
     amount: Money,
     kind: &'static str,
+    account_id: AccountId,
+    currency: String,
+    merchant_logo: Option<String>,
 }
 
 /// Forecast detected bills and income over a bounded horizon, excluding discretionary spending.
@@ -245,6 +256,9 @@ pub(crate) fn forecast_bank_cashflow(
                         charge.average_amount.0.clone()
                     }),
                     kind,
+                    account_id: charge.account_id.clone(),
+                    currency: charge.currency.clone(),
+                    merchant_logo: charge.merchant_logo.clone(),
                 });
             }
         }
@@ -340,6 +354,50 @@ mod tests {
     }
 
     #[test]
+    fn recurring_patterns_keep_account_and_currency_identity() {
+        let mut rows = Vec::new();
+        for date in ["2024-02-15", "2024-02-22", "2024-02-29"] {
+            for (account, amount, currency) in [
+                ("a", "-10", "NZD"),
+                ("b", "-20", "NZD"),
+                ("a", "-30", "USD"),
+            ] {
+                rows.push(transaction(
+                    &format!("{account}-{currency}-{date}"),
+                    account,
+                    date,
+                    amount,
+                    currency,
+                ));
+            }
+        }
+        let recurring = detect_bank_recurring(
+            &rows.iter().collect::<Vec<_>>(),
+            3.,
+            RecurringDirection::Spending,
+        );
+        assert_eq!(
+            recurring.len(),
+            3,
+            "One merchant must retain separate patterns for each account and currency"
+        );
+        let values = serde_json::to_value(&recurring).expect("Recurring fixtures serialize");
+        for (account, currency, average) in
+            [("a", "NZD", "10"), ("b", "NZD", "20"), ("a", "USD", "30")]
+        {
+            let row = values
+                .as_array()
+                .expect("Recurring result is an array")
+                .iter()
+                .find(|row| row["accountId"] == account && row["currency"] == currency)
+                .expect("Each source account and currency has its own recurring row");
+            assert_eq!(row["averageAmount"], average);
+            assert_eq!(row["occurrences"], 3);
+            assert_eq!(row["cadence"], "weekly");
+        }
+    }
+
+    #[test]
     fn recurring_and_forecast_keep_projection_behavior_after_detection() {
         let rows = ["2024-02-15", "2024-02-22", "2024-02-29"]
             .iter()
@@ -378,11 +436,11 @@ mod tests {
         let forecast = forecast_bank_cashflow(BigDecimal::from(100), today, 7., &bills, &income);
         assert_eq!(
             forecast["events"][0],
-            json!({"date":"2024-03-07","description":"Fixture bill","amount":"-25.5","kind":"recurring_charge"})
+            json!({"date":"2024-03-07","description":"Fixture bill","amount":"-25.5","kind":"recurring_charge","accountId":"a","currency":"NZD","merchantLogo":null})
         );
         assert_eq!(
             forecast["events"][1],
-            json!({"date":"2024-03-08","description":"Fixture bill","amount":"1000","kind":"expected_income"})
+            json!({"date":"2024-03-08","description":"Fixture bill","amount":"1000","kind":"expected_income","accountId":"a","currency":"NZD","merchantLogo":null})
         );
         assert_eq!(forecast["endingBalance"], "1074.5");
         assert_eq!(
@@ -402,7 +460,10 @@ mod tests {
             ("quarterly", 91),
         ] {
             let charge = RecurringCharge {
+                account_id: AccountId("fixture-account".to_string()),
+                currency: "NZD".to_string(),
                 merchant: "Fixture".to_string(),
+                merchant_logo: None,
                 category: None,
                 cadence,
                 occurrences: 3,

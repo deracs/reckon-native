@@ -11,6 +11,8 @@ Reckon includes a full desktop window alongside the menu-bar dropdown.
 
 The desktop uses a light canvas, soft blue navigation, bank shortcuts, an integrated balance forecast, and a searchable transaction table with account filters and transaction details. Bank and account filters show the bank name and logo; the account menu groups accounts under each bank. All six sections use the same data and unlock session as the dropdown.
 
+Bills shows upcoming estimates and recurring payments with bank logos, account names, and currencies. Spending offers bar and pie charts. The app saves your chart choice. The pie chart includes all categories, with smaller categories in **Other categories**.
+
 ![Desktop overview with fictional sample data](docs/screenshots/desktop-overview-demo.jpg)
 
 ![Activity with bank and account identities](docs/screenshots/desktop-activity-demo.jpg)
@@ -38,6 +40,10 @@ These app previews show fictional demo data. Demo mode does not read saved crede
 | Overview | Accounts | Forecast |
 | --- | --- | --- |
 | <a href="docs/screenshots/overview-demo.jpg"><img src="docs/screenshots/overview-demo.jpg" alt="Overview cards with fictional liquid balance, payday, cashflow, and data freshness" width="250"></a> | <a href="docs/screenshots/accounts-demo.jpg"><img src="docs/screenshots/accounts-demo.jpg" alt="Sample Bank accounts with a bank total, separate account balances, and balance trends" width="250"></a> | <a href="docs/screenshots/dead-reckoning-demo.jpg"><img src="docs/screenshots/dead-reckoning-demo.jpg" alt="Forecast tab with a fictional 30-day balance estimate" width="250"></a> |
+
+| Desktop Bills | Spending: bar | Spending: pie |
+| --- | --- | --- |
+| <a href="docs/screenshots/desktop-bills-demo.jpg"><img src="docs/screenshots/desktop-bills-demo.jpg" alt="Upcoming estimates and recurring payments with sample bank and account details" width="250"></a> | <a href="docs/screenshots/desktop-spending-bar-demo.jpg"><img src="docs/screenshots/desktop-spending-bar-demo.jpg" alt="Current-month category bars and comparison with previous months" width="250"></a> | <a href="docs/screenshots/desktop-spending-pie-demo.jpg"><img src="docs/screenshots/desktop-spending-pie-demo.jpg" alt="Current-month category shares in a donut chart" width="250"></a> |
 
 Click a screenshot to view it at full size.
 
@@ -89,8 +95,8 @@ Hover over a tab for its full section name. Hover over a small **info icon** for
 | **Accounts** | Accounts grouped by bank, with bank logos and totals for each currency. Click the whole bank row to expand it. |
 | **Activity** | Recent transactions, search, and a filter for transactions first seen since your previous visit. |
 | **Forecast** | **Dead reckoning:** a 30-day balance estimate from regular income and bills. The estimate excludes everyday discretionary spending. |
-| **Spending** | **The bleed:** the five largest spending categories this month, compared with the previous three months’ average. |
-| **Bills** | **Standing orders:** detected regular charges and estimated bills due in the next seven days. |
+| **Spending** | **The bleed:** current-month categories, with desktop bar/pie choices and a comparison of the five largest categories against the previous three months’ average. |
+| **Bills** | **Standing orders:** detected regular charges and estimated bills due in the next seven days. Desktop rows identify each source bank and account. |
 
 The menu bar shows only the chart icon. Your balances appear inside the dropdown after you unlock it.
 
@@ -163,6 +169,8 @@ For version 0.7.1 or earlier, install the latest release manually once. Later up
 **Currencies stay separate in Accounts.** Some income and spending totals combine currencies without conversion. Reckon labels those totals as mixed currencies.
 
 **Dead reckoning and payday dates are estimates.** The balance estimate excludes discretionary spending. Detected bills and deposits can change.
+
+**Spending covers this month.** Activity includes the latest 100 transactions from six months. Older transactions can have categories while current-month transactions remain uncategorized. Reckon uses Akahu categories, without the web app’s saved category rules or overrides.
 
 ## Common questions
 

@@ -58,6 +58,9 @@ public struct BankForecastPoint: Decodable, Identifiable, Sendable {
 }
 
 public struct BankForecastEvent: Decodable, Sendable {
+    public let accountId: String?
+    public let currency: String?
+    public let merchantLogo: String?
     public let date: String
     public let description: String
     public let amount: BankMoney
