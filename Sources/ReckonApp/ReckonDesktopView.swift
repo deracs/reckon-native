@@ -59,13 +59,16 @@ struct ReckonDesktopView: View {
         .onAppear { if navigation.section == .activity { searchFocused = true } }
     }
 
+    /// A quiet footer wordmark matches the web brand without adding another navigation control.
+    private var desktopBrand: some View {
+        Text("reckon.").font(ReckonBrandTypography.wordmark).tracking(-0.8)
+            .foregroundStyle(.secondary).opacity(0.55)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityHidden(true)
+    }
+
     private var sidebar: some View {
         VStack(alignment: .leading, spacing: 22) {
-            HStack(spacing: 9) {
-                Image(nsImage: NSImage(named: NSImage.applicationIconName) ?? NSImage())
-                    .resizable().frame(width: 29, height: 29)
-                Text("Reckon").font(ReckonBrandTypography.wordmark).tracking(-0.8)
-            }.padding(.horizontal, 10)
             VStack(spacing: 4) {
                 ForEach(ReckonDashboardSection.allCases) { section in
                     sidebarButton(section.shortLabel, image: section.systemImage,
@@ -99,9 +102,10 @@ struct ReckonDesktopView: View {
             VStack(spacing: 4) {
                 sidebarButton("Settings", image: "gearshape", selected: false, action: openSettings)
                 sidebarButton("Lock Reckon", image: "lock", selected: false, action: lock)
+                desktopBrand.padding(.horizontal, 12).padding(.top, 12)
             }
         }
-        .padding(.horizontal, 12).padding(.top, 58).padding(.bottom, 20)
+        .padding(.horizontal, 12).padding(.top, 44).padding(.bottom, 20)
         .frame(width: 204).frame(maxHeight: .infinity)
         .background(ReckonDesktopAppearance.sidebar.opacity(0.85))
     }
@@ -110,7 +114,7 @@ struct ReckonDesktopView: View {
         Button(action: action) {
             Label(title, systemImage: image).font(.system(size: 13, weight: selected ? .medium : .regular))
                 .labelStyle(.titleAndIcon).frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 12).padding(.vertical, 9).contentShape(Rectangle())
+                .padding(.horizontal, 12).frame(height: 36).contentShape(Rectangle())
         }
         .buttonStyle(.plain).foregroundStyle(selected ? ReckonAppearance.accent : Color.primary)
         .background(selected ? ReckonDesktopAppearance.selection : .clear, in: RoundedRectangle(cornerRadius: 8))
@@ -146,6 +150,7 @@ struct ReckonDesktopView: View {
                 ReckonUpdateBadge(notice: notice, canOpenUpdate: softwareUpdates.canCheckForUpdates, openUpdate: openSoftwareUpdate)
             }
         }
+        .frame(height: 36)
         .padding(.horizontal, 28).padding(.top, 44).padding(.bottom, 24)
     }
 
