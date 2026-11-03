@@ -1,16 +1,18 @@
-This release makes update checks visible without adding clutter to the dashboard.
+# Reckon 0.8.0
 
-- Reckon quietly checks for updates when you open the dashboard or Settings, at most once a minute. These checks respect the automatic-check preference and leave active downloads and staged installations alone.
-- The dashboard shows a spinner while checking, an update icon when a release is available or ready to install, and no indicator otherwise. Click the icon to review or install the update; hover for its version and status.
-- Settings → Updates shows the installed and latest versions, last check time, and last result. Completed results survive a restart of the same app build. Failed checks report failure rather than claiming Reckon is up to date.
-- Added checks for the cooldown, automatic-check preferences, saved results, and Sparkle completion callbacks. The existing six-hour background schedule and manual Check for Updates remain available.
+## Desktop app
 
-Requires macOS 15 or later and a Mac login password. Existing installations can update through Settings → Updates → Check for Updates.
+- Open a full desktop dashboard alongside the menu-bar dropdown, with a light canvas, blue navigation, bank shortcuts, an integrated forecast, and a muted Newsreader wordmark.
+- Browse accounts by bank and currency. Search and sort the fetched activity page, filter by bank/account, and open transaction details. The entire account selector is clickable, with aligned labels, a right-aligned chevron, and keyboard support.
+- Use Command–0 to open the desktop, Command–1 through Command–6 to switch sections, Command–F to search activity, and Command–Comma for Settings.
+- Close, minimize, and restore the desktop through normal Mac controls and the Dock. Window size and position are saved, and the menu-bar dropdown remains available.
 
-Local validation passed 55 core checks, 6 image checks, and the native window lifecycle and update callback checks. The minimized-Settings dropdown assertion was intermittent during local runs and passed on rerun.
+The desktop opens locked at launch. To keep menu-bar-only startup, turn off **Settings → General → Open desktop window at launch**. Launch at login remains separate.
 
-Authentication uses the same macOS policy as previous releases. No new physical-device authentication checks were performed for this release: Touch ID, password fallback, Apple Watch approval, cancellation, and lock/sleep during a prompt were not rechecked manually. Apple Watch approval has not been tested with a physical watch. Automated checks cover session expiry, cancellation, rejection, and stale replies.
+Desktop and dropdown share the same data, ten-minute unlock session, comparison visit, and update checker. Locking clears desktop searches/selections and removes private content, including any open account menu. Credentials, encrypted history, and currency rules are unchanged. Font files and their SIL Open Font License ship with the app; no font installation is required.
 
-Download arm64 for Apple silicon or x86_64 for Intel. The archives contain no saved Akahu tokens or personal bank history. SHA-256 checksum files accompany both downloads.
+## Validation
 
-This personal build is ad-hoc signed, not Developer ID signed or notarized. macOS Gatekeeper can require approval in System Settings → Privacy & Security. Managed Macs can block the app.
+- Swift core and image checks, native window lifecycle/account-selector checks, release build, signature verification, and privacy checks passed locally. GitHub builds and checks both Apple silicon and Intel before publication.
+- Manual sample-data checks covered all six desktop sections, search, filtering, sorting, transaction details, keyboard menu selection, Settings, lock/unlock, resizing, and window reopening.
+- Real Touch ID, Mac-password, Apple Watch, authentication cancellation during sleep, and macOS session-switch hardware checks were not performed for this release. Automated session expiry/cancellation/stale-reply checks pass. Personal builds remain ad-hoc signed, without Developer ID notarization.
