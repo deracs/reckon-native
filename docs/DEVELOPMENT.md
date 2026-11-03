@@ -100,7 +100,7 @@ The desktop opens locked by default at launch. `ReckonDesktopPreferences` stores
 
 A visit begins only once while a financial surface is open. Opening or closing the dropdown alongside an open desktop does not reset its comparison baseline. Closing the last financial surface ends the visit; locking always ends it.
 
-The desktop uses a light appearance, blue navigation, and the same visible currency, forecast, partial-failure, and source-freshness warnings as the dropdown. The [README](../README.md#desktop-preview) lists shortcuts and sample screenshots. The [design reference](design/README.md) contains the generated concept, not an app screenshot.
+The desktop uses a light appearance, blue navigation, and the same visible currency, forecast, partial-failure, and source-freshness warnings as the dropdown. The [README](../README.md#desktop-app) lists shortcuts and sample screenshots. The [design reference](design/README.md) contains the generated concept, not an app screenshot.
 
 The muted lowercase `reckon.` wordmark sits beneath **Lock Reckon** in the sidebar, matching the web brand. Navigation stays in the sidebar, with its first row aligned to the page heading. The desktop name uses bundled Newsreader SemiBold at 26 points, matching the web wordmark's typeface. `ReckonBrandTypography` registers it only for this process and sets its weight and optical-size axes. Other text uses the macOS system font. The build includes the font and its SIL Open Font License from `Resources/Fonts`; no system font installation or download is required at runtime.
 

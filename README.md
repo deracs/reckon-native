@@ -5,9 +5,9 @@ Reckon connects to Akahu and runs as a standalone app. You do not need a termina
 
 **[Download the latest release](https://github.com/deracs/reckon-native/releases/latest)**
 
-## Desktop preview
+## Desktop app
 
-This branch adds a full desktop window alongside the menu-bar dropdown. The latest published release still uses the menu-bar interface.
+Reckon includes a full desktop window alongside the menu-bar dropdown.
 
 The desktop uses a light canvas, soft blue navigation, bank shortcuts, an integrated balance forecast, and a searchable transaction table with account filters and transaction details. Bank and account filters show the bank name and logo; the account menu groups accounts under each bank. All six sections use the same data and unlock session as the dropdown.
 
@@ -15,7 +15,7 @@ The desktop uses a light canvas, soft blue navigation, bank shortcuts, an integr
 
 ![Activity with bank and account identities](docs/screenshots/desktop-activity-demo.jpg)
 
-Build this branch with the [developer guide](docs/DEVELOPMENT.md). Open the desktop from **Open app** in the dropdown or **Window → Open Reckon**. Opening Reckon from the Dock also restores its window. Closing or minimizing it leaves the menu-bar dropdown available. Window size and position are saved.
+Open the desktop from **Open app** in the dropdown or **Window → Open Reckon**. Opening Reckon from the Dock also restores its window. Closing or minimizing it leaves the menu-bar dropdown available. Window size and position are saved.
 
 The desktop opens locked at launch. To start with only the menu-bar icon, disable **Settings → General → Open desktop window at launch**. **Launch at login** remains a separate option.
 
