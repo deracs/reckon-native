@@ -281,7 +281,9 @@ struct ReckonPreferencesView: View {
                 }
                     .disabled(store.isDemo)
                 if let loginMessage { Text(loginMessage).font(.caption).foregroundStyle(.secondary) }
-                Toggle("Open desktop window at launch", isOn: $openDesktopAtLaunch).disabled(store.isDemo)
+                Toggle(isOn: $openDesktopAtLaunch) {
+                    Text("Open desktop window at launch").frame(maxWidth: .infinity, alignment: .leading)
+                }.disabled(store.isDemo)
                 Text("Turn this off to start in the menu bar. Open the desktop dashboard from Open app or Window → Open Reckon.")
                     .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 Divider()

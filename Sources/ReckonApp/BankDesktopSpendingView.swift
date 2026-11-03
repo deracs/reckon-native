@@ -7,18 +7,32 @@ private enum BankSpendingChartStyle: String, CaseIterable, Identifiable {
     var id: Self { self }
 }
 
+private struct SpendingDateRange {
+    let from: String
+    let to: String
+}
+
 private struct BankSpendingSlice: Identifiable {
     let id: String
     let category: String
     let amount: Decimal
 }
 
-/// Both chart styles use the same current-month category totals; pie includes the remaining categories.
+/// Both chart styles use the selected period; pie includes the remaining categories.
 struct BankDesktopSpendingView: View {
+    @ObservedObject var store: BankDashboardStore
     let dashboard: BankDashboard
+    @State private var fromDate = Date.now
+    @State private var toDate = Date.now
+    @State private var selectedRange: SpendingDateRange?
+    @State private var rangeSpending: BankSection<[CategorySpending]>?
+    @State private var isLoadingRange = false
+    @State private var rangeError: String?
+    @State private var rangeRequest = UUID()
     @AppStorage("ReckonSpendingChartStyle") private var chartStyle = BankSpendingChartStyle.bar
     @State private var selectedAngle: Double?
-    private var allRows: [CategorySpending] { (dashboard.spending.value ?? []).filter { $0.spent.value > 0 }.sorted { $0.spent.value > $1.spent.value } }
+    private var spending: BankSection<[CategorySpending]> { selectedRange == nil ? dashboard.spending : (rangeSpending ?? .loaded([])) }
+    private var allRows: [CategorySpending] { (spending.value ?? []).filter { $0.spent.value > 0 }.sorted { $0.spent.value > $1.spent.value } }
     private var rows: [CategorySpending] { Array(allRows.prefix(5)) }
     private var total: Decimal { allRows.reduce(Decimal.zero) { $0 + $1.spent.value } }
     private var currency: String? { dashboard.hasMultipleCurrencies ? nil : dashboard.accounts.first?.currency }
@@ -47,7 +61,7 @@ struct BankDesktopSpendingView: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Spending by category").font(.system(size: 20, weight: .semibold))
-                    Text("This month · \(BankCalendar.label(dashboard.window.monthStart)) – \(BankCalendar.label(dashboard.window.today))")
+                    Text(periodLabel)
                         .font(.system(size: 11)).foregroundStyle(.secondary)
                 }
                 Spacer()
@@ -56,28 +70,79 @@ struct BankDesktopSpendingView: View {
                     Label("Pie", systemImage: "chart.pie").tag(BankSpendingChartStyle.pie)
                 }.pickerStyle(.segmented).labelsHidden().frame(width: 148).accessibilityLabel("Spending chart style")
             }
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                DatePicker("From", selection: $fromDate, displayedComponents: .date)
+                DatePicker("To", selection: $toDate, displayedComponents: .date)
+                Button("Show spending") { selectPeriod() }
+                if selectedRange != nil { Button("This month") { selectedRange = nil; rangeSpending = nil; rangeError = nil; rangeRequest = UUID() } }
+            }
+            .environment(\.calendar, BankCalendar.calendar).environment(\.timeZone, BankCalendar.calendar.timeZone)
+            if let rangeError { Text(rangeError).font(.caption).foregroundStyle(.orange) }
+            if store.isDemo && selectedRange != nil { Text("Sample data is not filtered by date.").font(.caption).foregroundStyle(.secondary) }
             if dashboard.hasMultipleCurrencies {
                 Label("Mixed currencies · amounts are unconverted", systemImage: "exclamationmark.circle")
                     .font(.system(size: 11)).foregroundStyle(.orange)
             }
-            if let error = dashboard.spending.errorMessage { BankDesktopSectionError(message: error) }
+            if isLoadingRange && selectedRange != nil { ProgressView("Reading spending…") }
+            else if let error = spending.errorMessage { BankDesktopSectionError(message: error) }
             else if allRows.isEmpty {
                 Label("No spending recorded in this period.", systemImage: "chart.pie").font(.callout).foregroundStyle(.secondary).padding(.vertical, 28)
             } else {
                 if !hasNamedCategories {
-                    Label("These transactions have no source categories yet. Activity includes older transactions, which may already be categorized.", systemImage: "info.circle")
+                    Label("These transactions have no source categories. Other periods may already have categories.", systemImage: "info.circle")
                         .font(.system(size: 11)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                         .padding(12).frame(maxWidth: .infinity, alignment: .leading)
                         .background(ReckonDesktopAppearance.selection.opacity(0.45), in: RoundedRectangle(cornerRadius: 8))
                 }
                 if chartStyle == .pie { pieChart } else { barChart }
-                Divider()
-                categoryComparison
+                if selectedRange == nil { Divider(); categoryComparison }
             }
         }
         .frame(maxWidth: 1040, alignment: .leading).frame(maxWidth: .infinity, alignment: .leading)
+        .onAppear {
+            fromDate = BankCalendar.date(dashboard.window.monthStart) ?? .now
+            toDate = BankCalendar.date(dashboard.window.today) ?? .now
+        }
+        .task(id: rangeRequest) { await loadSelectedPeriod() }
         .onChange(of: chartStyle) { selectedAngle = nil }
         .onChange(of: slices.map(\.amount)) { selectedAngle = nil }
+    }
+
+    private var periodLabel: String {
+        let start = selectedRange?.from ?? dashboard.window.monthStart
+        let end = selectedRange?.to ?? dashboard.window.today
+        return "\(selectedRange == nil ? "This month" : "Selected period") · \(BankCalendar.label(start)) – \(BankCalendar.label(end))"
+    }
+
+    private func selectPeriod() {
+        let from = BankCalendar.day(fromDate)
+        let to = BankCalendar.day(toDate)
+        guard from <= to, to <= BankCalendar.day(.now) else {
+            rangeError = "Choose a start date before the end date, and an end date no later than today."
+            return
+        }
+        selectedRange = SpendingDateRange(from: from, to: to)
+        rangeError = nil
+        rangeSpending = nil
+        isLoadingRange = true
+        selectedAngle = nil
+        rangeRequest = UUID()
+    }
+
+    @MainActor private func loadSelectedPeriod() async {
+        guard let range = selectedRange else { isLoadingRange = false; return }
+        isLoadingRange = true
+        do {
+            let rows = try await store.fetchSpending(from: range.from, to: range.to)
+            try Task.checkCancellation()
+            rangeSpending = .loaded(rows)
+            isLoadingRange = false
+        } catch is CancellationError { return }
+        catch {
+            guard !Task.isCancelled else { return }
+            rangeSpending = .failed(error.localizedDescription)
+            isLoadingRange = false
+        }
     }
 
     private var barChart: some View {
@@ -115,7 +180,7 @@ struct BankDesktopSpendingView: View {
                 }
                 .chartAngleSelection(value: $selectedAngle).chartLegend(.hidden)
                 VStack(spacing: 6) {
-                    Text(selectedSlice?.category ?? "This month").font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(2).multilineTextAlignment(.center)
+                    Text(selectedSlice?.category ?? (selectedRange == nil ? "This month" : "Selected period")).font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(2).multilineTextAlignment(.center)
                     Text(BankFormatting.money(selectedSlice?.amount ?? total, currency: currency))
                         .font(.system(size: 22, weight: .semibold)).monospacedDigit().minimumScaleFactor(0.7).lineLimit(1)
                 }.frame(width: 134).allowsHitTesting(false)

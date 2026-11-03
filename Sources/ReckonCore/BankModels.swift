@@ -4,6 +4,8 @@ import Foundation
 public struct BankMoney: Decodable, Sendable {
     public let value: Decimal
 
+    public init(value: Decimal) { self.value = value }
+
     public init(from decoder: any Decoder) throws {
         let container = try decoder.singleValueContainer()
         let text = try container.decode(String.self)

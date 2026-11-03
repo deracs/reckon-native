@@ -17,6 +17,9 @@ final class ReckonApplicationDelegate: NSObject, NSApplicationDelegate, NSWindow
     private var desktopWindow: NSWindow?
     private let desktopNavigation = ReckonDesktopNavigation()
     private var unlockTask: Task<Void, Never>?
+    private var pendingDashboardActivation: NSObjectProtocol?
+    private var pendingDashboardActivationID: UUID?
+    private var pendingDashboardActivationTimeout: Task<Void, Never>?
     private var subscriptions = Set<AnyCancellable>()
     private var workspaceObservers: [NSObjectProtocol] = []
 
@@ -86,6 +89,7 @@ final class ReckonApplicationDelegate: NSObject, NSApplicationDelegate, NSWindow
         for (index, section) in ReckonDashboardSection.allCases.enumerated() {
             let item = viewMenu.addItem(withTitle: section.shortLabel, action: #selector(selectDesktopSection(_:)), keyEquivalent: String(index + 1))
             item.tag = index
+            item.keyEquivalentModifierMask = [.command, .option]
             item.target = self
         }
         let viewItem = NSMenuItem(title: "View", action: nil, keyEquivalent: "")
@@ -111,6 +115,7 @@ final class ReckonApplicationDelegate: NSObject, NSApplicationDelegate, NSWindow
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        cancelPendingDashboardActivation()
         appLock?.lock()
         store?.shutdown()
         shortcut?.stop()
@@ -126,6 +131,7 @@ final class ReckonApplicationDelegate: NSObject, NSApplicationDelegate, NSWindow
 
     /// The desktop window and dropdown share one store, updater, and ten-minute unlock session.
     @objc private func openDesktop() {
+        cancelPendingDashboardActivation()
         appLock.expireSessionIfNeeded()
         if NSApp.activationPolicy() != .regular { NSApp.setActivationPolicy(.regular) }
         if desktopWindow == nil {
@@ -197,7 +203,9 @@ final class ReckonApplicationDelegate: NSObject, NSApplicationDelegate, NSWindow
     }
 
     @objc private func toggleDashboard() {
-        if appLock.state == .authenticating {
+        if pendingDashboardActivationID != nil {
+            cancelPendingDashboardActivation()
+        } else if appLock.state == .authenticating {
             lockReckon()
         } else if popover.isShown {
             popover.performClose(nil)
@@ -229,10 +237,13 @@ final class ReckonApplicationDelegate: NSObject, NSApplicationDelegate, NSWindow
     }
 
     private func showDashboard(inPreview: Bool) {
+        presentDashboardWhenActive { [weak self] in self?.presentUnlockedDashboard(inPreview: inPreview) }
+    }
+
+    private func presentUnlockedDashboard(inPreview: Bool) {
         guard appLock.isUnlocked else { return }
         softwareUpdates.checkWhenOpened()
         store.beginVisit()
-        NSApp.activate(ignoringOtherApps: true)
         let content = ReckonProtectedView(appLock: appLock) { [weak self, store = self.store!, softwareUpdates = self.softwareUpdates!] in
             BankDashboardView(store: store, softwareUpdates: softwareUpdates,
                               openSettings: { [weak self] in self?.showSettings() },
@@ -258,9 +269,47 @@ final class ReckonApplicationDelegate: NSObject, NSApplicationDelegate, NSWindow
     }
 
     private func showLockedPopover() {
-        setPopoverContent(ReckonLockedView(appLock: appLock,
-            unlock: { [weak self] in self?.openDashboard() }))
-        showPopover()
+        presentDashboardWhenActive { [weak self] in
+            guard let self, !self.appLock.isUnlocked else { return }
+            self.setPopoverContent(ReckonLockedView(appLock: self.appLock,
+                unlock: { [weak self] in self?.openDashboard() }))
+            self.showPopover()
+        }
+    }
+
+    /// Transient popovers must wait for application activation or the focus handoff can dismiss them.
+    private func presentDashboardWhenActive(_ present: @escaping @MainActor () -> Void) {
+        cancelPendingDashboardActivation()
+        guard !NSApp.isActive else { present(); return }
+        let id = UUID()
+        pendingDashboardActivationID = id
+        pendingDashboardActivation = NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification, object: NSApp, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self, self.pendingDashboardActivationID == id, NSApp.isActive else { return }
+                self.cancelPendingDashboardActivation()
+                present()
+            }
+        }
+        pendingDashboardActivationTimeout = Task { [weak self] in
+            do { try await Task.sleep(for: .seconds(3)) } catch { return }
+            guard let self, self.pendingDashboardActivationID == id else { return }
+            self.cancelPendingDashboardActivation()
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        if NSApp.isActive, pendingDashboardActivationID == id {
+            cancelPendingDashboardActivation()
+            present()
+        }
+    }
+
+    private func cancelPendingDashboardActivation() {
+        if let pendingDashboardActivation { NotificationCenter.default.removeObserver(pendingDashboardActivation) }
+        pendingDashboardActivation = nil
+        pendingDashboardActivationID = nil
+        pendingDashboardActivationTimeout?.cancel()
+        pendingDashboardActivationTimeout = nil
     }
 
     private func setPopoverContent<Content: View>(_ content: Content) {
@@ -278,6 +327,7 @@ final class ReckonApplicationDelegate: NSObject, NSApplicationDelegate, NSWindow
 
     @objc private func showSettings() {
         guard appLock.isUnlocked else { return }
+        cancelPendingDashboardActivation()
         softwareUpdates.checkWhenOpened()
         if let settingsWindow {
             popover.performClose(nil)
@@ -364,6 +414,7 @@ final class ReckonApplicationDelegate: NSObject, NSApplicationDelegate, NSWindow
     }
 
     private func dismissDashboard() {
+        cancelPendingDashboardActivation()
         popover.performClose(nil)
         previewWindow?.close()
         endVisitIfDashboardHidden()

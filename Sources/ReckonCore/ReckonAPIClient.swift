@@ -96,6 +96,13 @@ public struct ReckonAPIClient: Sendable {
                                        freshness: freshness, window: window, fetchedAt: now, transactions: transactions, forecast: forecast)
     }
 
+    /// Reads all spending in the inclusive Auckland date range, excluding transfers.
+    public func fetchSpending(from: String, to: String) async throws -> [CategorySpending] {
+        let query = [URLQueryItem(name: "from", value: from), URLQueryItem(name: "to", value: to),
+                     URLQueryItem(name: "excludeTransfers", value: "true")]
+        return try await get("spending", query: query, snapshotID: UUID().uuidString)
+    }
+
     private func section<Value: Decodable & Sendable>(_ path: String, query: [URLQueryItem] = [], snapshotID: String) async -> BankSection<Value> {
         do { return .loaded(try await get(path, query: query, snapshotID: snapshotID)) }
         catch { return .failed(error.localizedDescription) }

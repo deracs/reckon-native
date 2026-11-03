@@ -34,9 +34,11 @@ struct BankDesktopAccountsView: View {
                         ForEach(bank.accounts) { account in accountCard(account) }
                     }
                     Divider()
+                    if navigation.bankID != nil { BankDesktopBankActivityView(store: store, navigation: navigation, bank: bank) }
                 }
             }
             if banks.isEmpty { Text("No connected accounts.").foregroundStyle(.secondary) }
+            if navigation.bankID == nil { Divider(); ManualAccountsView(store: store); Divider(); SavingsGoalsView(store: store) }
             Text("Each currency is totalled separately. Click an account for its recent activity.").font(.caption).foregroundStyle(.secondary)
         }
     }

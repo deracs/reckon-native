@@ -8,7 +8,7 @@ struct BankForecastView: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 6) {
                 Text("Dead reckoning").font(.headline)
-                ReckonInfoHelp(subject: "Dead reckoning", explanation: "A 30-day estimate for NZD checking and savings, based on detected regular income and bills. Everyday spending and unexpected payments are not included. Hover or drag across the chart to inspect a day.")
+                ReckonInfoHelp(subject: "Dead reckoning", explanation: "A 30-day estimate for NZD checking and savings, based on detected regular income and bills. Your saved everyday spending allowance is included. Unexpected payments are not included. Hover or drag across the chart to inspect a day.")
             }
             if let forecast = section.value {
                 HStack(alignment: .firstTextBaseline) {
@@ -23,7 +23,7 @@ struct BankForecastView: View {
                 BankLineChart(points: forecast.points.compactMap { point in
                     BankCalendar.date(point.date).map { BankChartPoint(id: point.date, date: $0, balance: point.projectedBalance.value) }
                 }).frame(height: 170)
-                Text("NZD · excludes everyday spending")
+                Text("Combined liquid NZD · estimate")
                     .font(.caption2).foregroundStyle(.secondary)
                 if let risk = forecast.risks.first {
                     Label("Could fall below zero on \(BankCalendar.label(risk.date)): \(BankFormatting.money(risk.projectedBalance.value)).",

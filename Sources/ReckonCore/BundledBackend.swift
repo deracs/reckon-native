@@ -85,6 +85,19 @@ public final class BundledBackend {
         return dashboard
     }
 
+    /// Reads a selected spending period and releases the backend after the request.
+    public static func fetchSpending(bundleURL: URL, credentials: AkahuCredentials, from: String, to: String) async throws -> [CategorySpending] {
+        let backend = BundledBackend(bundleURL: bundleURL)
+        defer { backend.stop() }
+        let connection = try await backend.start(credentials: credentials)
+        let client = ReckonAPIClient(connection: connection)
+        defer { client.invalidateSession() }
+        let spending = try await client.fetchSpending(from: from, to: to)
+        try Task.checkCancellation()
+        guard backend.isRunning else { throw BundledBackendError.unexpectedExit }
+        return spending
+    }
+
     public var isRunning: Bool {
         if case .running(let child, _) = state { return child.process.isRunning }
         return false

@@ -51,7 +51,7 @@ The window lifecycle checks require an idle, logged-in macOS desktop. They drive
 
 The inactive-Settings check uses a separate fixture app for the focus handoff. It waits for macOS to activate that app before the next menu-bar click. This prevents a delayed deactivation that can close a later dropdown. Both fixture apps exit after the check.
 
-Window checks wait for activation, visibility, focus, and native minimize/restore completion events. Visibility checks also wait for macOS to report the window onscreen. Each wait has a three-second timeout and returns control to AppKit between actions. The checks never retry a failed click.
+The dropdown waits for application activation before showing its transient popover, so an in-progress focus handoff cannot dismiss it. A pending open is cancelled by a second click, locking, opening Settings or the desktop, or termination. Window checks assert this ordering and wait for activation, visibility, focus, and native minimize/restore completion events. Visibility checks also wait for macOS to report the window onscreen. Each wait has a three-second timeout and returns control to AppKit between actions. The checks never retry a failed click.
 
 To check for intermittent window failures, compile once and repeat the suite with fresh app processes:
 
@@ -94,6 +94,8 @@ Demo mode displays a sample-data label and skips authentication for UI checks. I
 
 The desktop opens locked by default at launch. `ReckonDesktopPreferences` stores the independent **Open desktop window at launch** preference. Disabling it preserves menu-bar-only startup. Demo mode opens the desktop only with `--desktop` and uses the demo authenticator.
 
+The desktop assigns ⌘1–9 to the first nine connected banks in sidebar order. The View menu assigns ⌘⌥1–6 to the six sections. Shortcuts follow the current bank list and are available only in the unlocked desktop window.
+
 `ReckonDashboardSection` supplies the same six destinations to both interfaces. `ReckonDesktopNavigation` owns desktop-only bank, account, search, and transaction selections. Lock clears those values and removes the entire private desktop view, including bank names. The shared ten-minute session, sleep lock, and canceled-authentication rules apply to both interfaces.
 
 `BankActivityFilter` intersects bank and account scope and searches merchant, description, category, bank, account, and currency. Filtering and native table sorting use the fetched activity page; they do not fetch additional history. `BankAccountFilterControl` uses a native pop-up button for the entire account field, with a decorative SwiftUI label that does not intercept clicks or accessibility. Its text lines share a left edge, its chevron sits at the trailing edge, and it provides hover and native keyboard-focus states. The menu groups accounts by bank and shows the selected bank's cached logo and name. Native table selection opens transaction details. No currency conversion or new financial calculations are introduced.
@@ -102,11 +104,13 @@ A visit begins only once while a financial surface is open. Opening or closing t
 
 The desktop uses a light appearance, blue navigation, and the same visible currency, forecast, partial-failure, and source-freshness warnings as the dropdown. The [README](../README.md#desktop-app) lists shortcuts and sample screenshots. The [design reference](design/README.md) contains the generated concept, not an app screenshot.
 
+Selecting a bank in the desktop sidebar shows its accounts and recent activity from the shared latest-100 transaction page; the bank list is filtered by its account IDs and links to bank-scoped Activity. The label states the cross-account page limit and six-month window.
+
 `BankDesktopBillsView` limits its content width and separates upcoming NZD estimates from recurring payments. Each row shows its source bank, account, and currency. Missing accounts retain an explicit fallback. Merchant artwork uses source metadata and the existing memory cache.
 
-`BankDesktopSpendingView` stores the bar/pie preference under `ReckonSpendingChartStyle` in UserDefaults. Both charts use the same month-to-date category totals. Bars show the five largest categories. The pie includes all categories and combines smaller categories in **Other categories**. Its legend supports category selection.
+`BankDesktopSpendingView` supports an inclusive user-selected date range and stores the bar/pie preference under `ReckonSpendingChartStyle` in UserDefaults. Both charts use the same month-to-date category totals. Bars show the five largest categories. The pie includes all categories and combines smaller categories in **Other categories**. Its legend supports category selection.
 
-The comparison table retains the five largest categories and the previous three full months’ average. A date label and an explanation for uncategorized data distinguish this period from Activity’s six-month page.
+The comparison table retains the five largest categories and the previous three full months’ average for the default current-month view. Custom periods fetch their own summary and hide that comparison. A date label and an explanation for uncategorized data distinguish this period from Activity’s six-month page.
 
 The muted lowercase `reckon.` wordmark sits beneath **Lock Reckon** in the sidebar, matching the web brand. Navigation stays in the sidebar, with its first row aligned to the page heading. The desktop name uses bundled Newsreader SemiBold at 26 points, matching the web wordmark's typeface. `ReckonBrandTypography` registers it only for this process and sets its weight and optical-size axes. Other text uses the macOS system font. The build includes the font and its SIL Open Font License from `Resources/Fonts`; no system font installation or download is required at runtime.
 
@@ -125,10 +129,10 @@ Small info icons beside headings hold longer explanations: hover for a tooltip o
 - Accounts are grouped into collapsible bank sections, initially closed. Each bank header shows Akahu's logo, its account count, and current combined balances, with a separate total for each currency. Totals include negative balances. Currencies are never converted or added together. Click anywhere in the header row to expand or collapse it. Expanded accounts retain their own currencies. Missing or unavailable logos use a bank symbol.
 - This month shows income, spending, and net cashflow through today.
 - Activity shows the latest 100 non-transfer transactions in the last six months, with search, merchant logos, and a newly-seen filter. Comparison uses transaction IDs, so late bank imports can count as newly seen. When the list reaches 100 transactions, its label states that the count covers only that page. Received totals retain their currencies. The first visit sets a baseline.
-- Dead reckoning shows a 30-day estimate for NZD checking and savings. It uses detected regular income and bills, excludes inter-account transfers, and does not include everyday discretionary spending. Hover or drag across the chart to inspect a day. The first projected negative day is flagged.
+- Dead reckoning shows a 30-day estimate for combined NZD checking and savings. It uses detected regular income and bills, excludes inter-account transfers, and applies an optional user-entered everyday spending allowance. Forecast assumptions can exclude a detected series or change its amount, move one occurrence, and add manual recurring NZD income or bills for eligible liquid accounts. The allowance should exclude those bills. Manual monthly, quarterly and yearly schedules use the original calendar day where possible; date changes and schedules do not alter bank payments. Hover or drag across the chart to inspect a day. The first projected negative day is flagged.
 - Estimated payday uses recurring deposits of at least NZ$200, without descriptions that contain interest, dividends, refunds, cashback or rental payments. It is a conservative heuristic, not a confirmed salary payment. Smaller pay deposits can be absent. Interest still contributes to the balance curve.
 - Standing orders starts with the estimated bills due in the next seven days for NZD checking and savings.
-- The bleed shows the five largest categories this month, with comparison to the previous three full months' average.
+- The bleed defaults to the five largest categories this month, with comparison to the previous three full months' average. The desktop date selector requests the full spending summary for an inclusive range and excludes transfers; it does not use the Activity page limit.
 - Standing orders show detected charges over six months, with their cadence and average amount.
 - Data freshness shows the last API fetch and each account's source refresh times.
 
@@ -141,6 +145,10 @@ Bank and merchant logos share the memory cache in `Sources/ReckonImages`. A tab 
 The decoded cache has an 8 MiB budget and a limit of 256 entries. Images have at most 128 pixels on their longest side. The HTTP cache has a 2 MiB memory budget, and source downloads have a 2 MiB size limit. Failed logos retain their fallback and wait one minute before another attempt. Logo images and URLs do not enter a disk cache.
 
 `ReckonImageChecks` renders fictional logos in an offscreen window. It checks the first frame after twenty tab recreations, shared requests, mid-request tab changes, changed URLs, error fallbacks, and thumbnail dimensions.
+
+Manual accounts and savings goals appear in Accounts, with net worth and goals on the desktop Overview. Manual debts are entered as positive amounts owed; totals keep currencies separate. Savings goals use the linked NZD savings account balance, including existing funds, and allow one goal per account.
+
+Manual accounts, goals and forecast assumptions are encrypted in a separate Keychain-backed local file and survive Akahu disconnects and token changes. Demo mode uses fictional in-memory records.
 
 The backend uses Akahu source data. It does not use the web app's database, saved category overrides, or category rules. Cashflow and category totals combine currencies without conversion. Recurring patterns retain their source currency. If the accounts include foreign currencies, the app labels those totals and omits the dollar symbol. Account balances retain their currency.
 

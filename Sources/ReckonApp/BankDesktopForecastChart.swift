@@ -30,7 +30,7 @@ struct BankDesktopForecastChart: View {
             HStack(alignment: .firstTextBaseline, spacing: 12) {
                 Text("Dead reckoning").font(.system(size: 18, weight: .semibold))
                 Text("30-day estimate").font(.system(size: 12)).foregroundStyle(.secondary)
-                ReckonInfoHelp(subject: "Dead reckoning", explanation: "A 30-day estimate for NZD checking and savings, using detected regular income and bills. Everyday spending and unexpected payments are excluded. Hover or drag to inspect a day.")
+                ReckonInfoHelp(subject: "Dead reckoning", explanation: "A 30-day estimate for NZD checking and savings, using regular income, bills and your saved everyday spending allowance. Unexpected payments are excluded. Hover or drag to inspect a day.")
             }
             HStack {
                 Text(selectedPoint.map { "\(BankCalendar.label($0.id)) · \(BankFormatting.money($0.balance))" } ?? " ")
@@ -83,7 +83,7 @@ struct BankDesktopForecastChart: View {
             }
             .frame(height: 208)
             .environment(\.calendar, BankCalendar.calendar).environment(\.timeZone, BankCalendar.calendar.timeZone)
-            Text("NZD · excludes everyday spending").font(.system(size: 11)).foregroundStyle(.secondary)
+            Text("Combined liquid NZD · estimate").font(.system(size: 11)).foregroundStyle(.secondary)
             if let risk = forecast.risks.first {
                 BankDesktopSectionError(message: "Could fall below zero on \(BankCalendar.label(risk.date)): \(BankFormatting.money(risk.projectedBalance.value)).")
             }
@@ -98,19 +98,25 @@ struct BankDesktopForecastChart: View {
 
 /// The full forecast page exposes the source estimate and its dated events without synthesizing bills.
 struct BankDesktopForecastPage: View {
-    let forecast: BankSection<BankForecast>
+    @ObservedObject var store: BankDashboardStore
+    var forecast: BankSection<BankForecast> { store.adjustedForecast }
     var body: some View {
         VStack(alignment: .leading, spacing: 26) {
             if let value = forecast.value {
                 Text("\(BankFormatting.money(value.endingBalance.value)) in 30 days")
                     .font(.system(size: 30, weight: .semibold)).monospacedDigit()
                 BankDesktopForecastChart(forecast: value)
+                if let low = value.points.min(by: { $0.projectedBalance.value < $1.projectedBalance.value }) {
+                    Text("Projected low: \(BankFormatting.money(low.projectedBalance.value)) on \(BankCalendar.label(low.date)) · combined liquid NZD")
+                }
+                if let original = store.dashboard?.forecast.value { BankForecastSettingsView(store: store, forecast: original) }
                 Divider()
                 Text("Estimated income and bills").font(.headline)
                 ForEach(Array(value.events.sorted { $0.date < $1.date }.enumerated()), id: \.offset) { _, event in
                     HStack {
                         Text(BankCalendar.label(event.date)).foregroundStyle(.secondary).frame(width: 100, alignment: .leading)
                         Text(event.description)
+                        if event.isManual == true { Text("Manual").font(.caption).foregroundStyle(.secondary) }
                         Spacer()
                         Text(BankFormatting.money(event.amount.value)).monospacedDigit()
                             .foregroundStyle(event.amount.value > 0 ? ReckonDesktopAppearance.income : Color.primary)

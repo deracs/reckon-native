@@ -15,6 +15,11 @@ final class BankDashboardStore: ObservableObject {
     @Published private(set) var visitSummary: BankVisitSummary?
     @Published private(set) var notificationMessage: String?
     @Published private(set) var alertSettingsError: String?
+    @Published private(set) var manualAccounts: [ManualFinancialAccount] = []
+    @Published private(set) var forecastAdjustments = BankForecastAdjustments()
+    @Published private(set) var savingsGoals: [SavingsGoal] = []
+    @Published private(set) var manualAccountsError: String?
+    private var manualAccountsStorage: ManualFinancialAccountsStorage?
     let isDemo: Bool
 
     private var historyStorage: EncryptedBankHistory?
@@ -42,8 +47,17 @@ final class BankDashboardStore: ObservableObject {
                 }
             }
             catch { loadError = "Could not load the sample dashboard." }
+            manualAccounts = [ManualFinancialAccount(name: "Sample KiwiSaver", kind: "KiwiSaver", currency: "NZD", balance: 25000)]
             return
         }
+        do {
+            let storage = try ManualFinancialAccountsStorage()
+            let saved = try storage.load()
+            manualAccounts = saved.accounts
+            savingsGoals = saved.goals
+            forecastAdjustments = saved.forecastAdjustments
+            manualAccountsStorage = storage
+        } catch { manualAccountsError = "Could not open manual accounts. Existing data has been left in place." }
         do {
             let storage = try BankHistoryKeychain.openHistory()
             journal = try storage.load()
@@ -65,6 +79,59 @@ final class BankDashboardStore: ObservableObject {
                 catch { return }
                 self?.reloadDashboard()
             }
+        }
+    }
+
+    func saveManualAccount(_ account: ManualFinancialAccount) -> Bool {
+        var next = manualAccounts
+        if let index = next.firstIndex(where: { $0.id == account.id }) { next[index] = account }
+        else { next.append(account) }
+        return persistFinancialSettings(accounts: next, goals: savingsGoals)
+    }
+
+    func deleteManualAccount(_ account: ManualFinancialAccount) -> Bool {
+        persistFinancialSettings(accounts: manualAccounts.filter { $0.id != account.id }, goals: savingsGoals.filter { $0.accountID != account.id.uuidString })
+    }
+
+    var adjustedForecast: BankSection<BankForecast> {
+        guard let section = dashboard?.forecast else { return .failed("Dead reckoning unavailable.") }
+        guard let value = section.value else { return section }
+        let eligible = Set((dashboard?.accounts ?? []).filter(\.contributesToLiquidBalance).map(\.id))
+        return .loaded(forecastAdjustments.apply(to: value, eligibleAccountIDs: eligible))
+    }
+
+    func saveForecastAdjustments(_ adjustments: BankForecastAdjustments) -> Bool {
+        persistFinancialSettings(accounts: manualAccounts, goals: savingsGoals, adjustments: adjustments)
+    }
+
+    func saveSavingsGoal(_ goal: SavingsGoal) -> Bool {
+        var next = savingsGoals.filter { $0.id != goal.id }
+        guard !next.contains(where: { $0.accountID == goal.accountID }) else {
+            manualAccountsError = "This account already has a savings goal."
+            return false
+        }
+        next.append(goal)
+        return persistFinancialSettings(accounts: manualAccounts, goals: next)
+    }
+
+    func deleteSavingsGoal(_ goal: SavingsGoal) -> Bool {
+        persistFinancialSettings(accounts: manualAccounts, goals: savingsGoals.filter { $0.id != goal.id })
+    }
+
+    private func persistFinancialSettings(accounts: [ManualFinancialAccount], goals: [SavingsGoal], adjustments: BankForecastAdjustments? = nil) -> Bool {
+        let adjustments = adjustments ?? forecastAdjustments
+        if isDemo { manualAccounts = accounts; savingsGoals = goals; forecastAdjustments = adjustments; return true }
+        guard let manualAccountsStorage else { return false }
+        do {
+            try manualAccountsStorage.save(LocalFinancialSettings(accounts: accounts, goals: goals, forecastAdjustments: adjustments))
+            manualAccounts = accounts
+            savingsGoals = goals
+            forecastAdjustments = adjustments
+            manualAccountsError = nil
+            return true
+        } catch {
+            manualAccountsError = "Could not save your changes. Existing data has been left in place."
+            return false
         }
     }
 
@@ -139,6 +206,16 @@ final class BankDashboardStore: ObservableObject {
                 self.isLoading = false
             }
         }
+    }
+
+    func fetchSpending(from: String, to: String) async throws -> [CategorySpending] {
+        if isDemo { return dashboard?.spending.value ?? [] }
+        guard let credentials else { throw ReckonAPIError.missingToken }
+        let requestGeneration = generation
+        let rows = try await BundledBackend.fetchSpending(bundleURL: Bundle.main.bundleURL, credentials: credentials, from: from, to: to)
+        try Task.checkCancellation()
+        guard generation == requestGeneration else { throw CancellationError() }
+        return rows
     }
 
     func beginVisit() {

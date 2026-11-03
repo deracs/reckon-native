@@ -5,6 +5,7 @@ import SwiftUI
 /// Upcoming NZD estimates and account-scoped recurring payments remain distinct from confirmed payments.
 struct BankDesktopBillsView: View {
     let dashboard: BankDashboard
+    let forecast: BankSection<BankForecast>
     private var recurring: [StandingOrder] { (dashboard.standingOrders.value ?? []).sorted { $0.averageAmount.value > $1.averageAmount.value } }
 
     var body: some View {
@@ -29,7 +30,7 @@ struct BankDesktopBillsView: View {
                         .font(.system(size: 11)).foregroundStyle(.secondary)
                 }
                 Spacer(minLength: 20)
-                if let forecast = dashboard.forecast.value {
+                if let forecast = forecast.value {
                     VStack(alignment: .trailing, spacing: 4) {
                         Text(BankFormatting.money(forecast.upcomingBills.reduce(Decimal.zero) { $0 + abs($1.amount.value) }))
                             .font(.system(size: 26, weight: .semibold)).monospacedDigit()
@@ -38,7 +39,7 @@ struct BankDesktopBillsView: View {
                     }
                 }
             }
-            if let forecast = dashboard.forecast.value {
+            if let forecast = forecast.value {
                 if forecast.upcomingBills.isEmpty {
                     Label("No payments expected in the next seven days.", systemImage: "calendar.badge.checkmark")
                         .font(.callout).foregroundStyle(.secondary).padding(.vertical, 12)
@@ -58,6 +59,7 @@ struct BankDesktopBillsView: View {
                             VStack(alignment: .leading, spacing: 7) {
                                 Text(bill.description).font(.system(size: 13, weight: .medium)).lineLimit(2).fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
                                 accountLabel(bill.accountId, compact: true)
+                                if bill.isManual == true { Text("Manual estimate").font(.system(size: 10)).foregroundStyle(.secondary) }
                             }
                             Spacer(minLength: 12)
                             Text(BankFormatting.money(abs(bill.amount.value)))
@@ -65,7 +67,7 @@ struct BankDesktopBillsView: View {
                         }.padding(.vertical, 6)
                     }
                 }
-            } else { BankDesktopSectionError(message: dashboard.forecast.errorMessage ?? "Upcoming bills unavailable.") }
+            } else { BankDesktopSectionError(message: forecast.errorMessage ?? "Upcoming bills unavailable.") }
         }
         .padding(20)
         .background(ReckonDesktopAppearance.selection.opacity(0.35), in: RoundedRectangle(cornerRadius: 14))

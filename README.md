@@ -9,9 +9,9 @@ Reckon connects to Akahu and runs as a standalone app. You do not need a termina
 
 Reckon includes a full desktop window alongside the menu-bar dropdown.
 
-The desktop uses a light canvas, soft blue navigation, bank shortcuts, an integrated balance forecast, and a searchable transaction table with account filters and transaction details. Bank and account filters show the bank name and logo; the account menu groups accounts under each bank. All six sections use the same data and unlock session as the dropdown.
+The desktop uses a light canvas, soft blue navigation, bank shortcuts, an integrated balance forecast, and a searchable transaction table with account filters and transaction details. Accounts also supports manually entered balances and savings goals; Overview shows net worth by currency. Bank and account filters show the bank name and logo; the account menu groups accounts under each bank. Select a bank in the sidebar to see its accounts and recent activity together. The activity list is filtered from the latest 100 non-transfer transactions across all connected accounts, within six months. All six sections use the same data and unlock session as the dropdown.
 
-Bills shows upcoming estimates and recurring payments with bank logos, account names, and currencies. Spending offers bar and pie charts. The app saves your chart choice. The pie chart includes all categories, with smaller categories in **Other categories**.
+Bills shows upcoming estimates and recurring payments with bank logos, account names, and currencies. Spending offers bar and pie charts and an inclusive From/To date selector in the desktop window. The app saves your chart choice. The pie chart includes all categories, with smaller categories in **Other categories**.
 
 ![Desktop overview with fictional sample data](docs/screenshots/desktop-overview-demo.jpg)
 
@@ -24,7 +24,8 @@ The desktop opens locked at launch. To start with only the menu-bar icon, disabl
 | Shortcut | Action |
 | --- | --- |
 | **⌘0** | Open or restore the desktop window. |
-| **⌘1–6** | Open Overview, Accounts, Activity, Forecast, Spending, or Bills. |
+| **⌘1–9** | Open a connected bank’s accounts, in sidebar order. |
+| **⌘⌥1–6** | Open Overview, Accounts, Activity, Forecast, Spending, or Bills. |
 | **⌘F** | Focus activity search. |
 | **⌘,** | Open Settings during an unlocked session. |
 | **⌘W / ⌘M** | Close or minimize the active window. |
@@ -94,7 +95,7 @@ Hover over a tab for its full section name. Hover over a small **info icon** for
 | **Overview** | Liquid balance, this month’s income and spending, estimated payday, and data freshness. |
 | **Accounts** | Accounts grouped by bank, with bank logos and totals for each currency. Click the whole bank row to expand it. |
 | **Activity** | Recent transactions, search, and a filter for transactions first seen since your previous visit. |
-| **Forecast** | **Dead reckoning:** a 30-day balance estimate from regular income and bills. The estimate excludes everyday discretionary spending. |
+| **Forecast** | **Dead reckoning:** a 30-day balance estimate from regular income and bills, with an optional everyday spending allowance, editable recurring amounts and dates, and manually added recurring income or bills. |
 | **Spending** | **The bleed:** current-month categories, with desktop bar/pie choices and a comparison of the five largest categories against the previous three months’ average. |
 | **Bills** | **Standing orders:** detected regular charges and estimated bills due in the next seven days. Desktop rows identify each source bank and account. |
 
@@ -157,6 +158,7 @@ For version 0.7.1 or earlier, install the latest release manually once. Later up
 
 - Akahu tokens stay in **macOS Keychain**.
 - Balance history stays **encrypted on this Mac**, with up to 90 daily observations per account.
+- Manual accounts, savings goals, and forecast assumptions are separately encrypted on this Mac and retained when you disconnect Akahu.
 - Update checks send **no bank data or Akahu tokens** to GitHub. GitHub receives normal connection metadata, such as your IP address.
 - The public source and release downloads contain **no saved bank connection or personal bank history**.
 
@@ -168,9 +170,11 @@ For version 0.7.1 or earlier, install the latest release manually once. Later up
 
 **Currencies stay separate in Accounts.** Some income and spending totals combine currencies without conversion. Reckon labels those totals as mixed currencies.
 
-**Dead reckoning and payday dates are estimates.** The balance estimate excludes discretionary spending. Detected bills and deposits can change.
+**Dead reckoning and payday dates are estimates.** Enter an everyday spending allowance in Forecast; it defaults to zero. Detected bills and deposits can change. Change individual estimated dates or add a recurring item in the desktop Forecast view; these changes do not alter bank payments. The low point covers combined liquid NZD accounts, not each account separately.
 
-**Spending covers this month.** Activity includes the latest 100 transactions from six months. Older transactions can have categories while current-month transactions remain uncategorized. Reckon uses Akahu categories, without the web app’s saved category rules or overrides.
+**Manual balances do not refresh automatically.** Update them in Accounts. Net worth includes only connected and entered accounts; it keeps currencies separate and treats manual debts as amounts owed. Savings goals assume the linked account balance is available for that goal.
+
+**Spending defaults to this month.** Choose From and To dates in the desktop Spending view to inspect another period. Activity includes the latest 100 transactions from six months. Older transactions can have categories while current-month transactions remain uncategorized. Reckon uses Akahu categories, without the web app’s saved category rules or overrides.
 
 ## Common questions
 

@@ -30,6 +30,12 @@ public struct BankForecast: Decodable, Sendable {
     public let events: [BankForecastEvent]
     public let risks: [BankForecastRisk]
 
+    public init(startDate: String, endDate: String, startingBalance: BankMoney, endingBalance: BankMoney,
+                points: [BankForecastPoint], events: [BankForecastEvent], risks: [BankForecastRisk]) {
+        self.startDate = startDate; self.endDate = endDate; self.startingBalance = startingBalance
+        self.endingBalance = endingBalance; self.points = points; self.events = events; self.risks = risks
+    }
+
     public var nextIncome: BankForecastEvent? {
         events.filter { $0.kind == "expected_income" && $0.amount.value > 0 }
             .sorted { $0.date < $1.date }.first
@@ -55,6 +61,7 @@ public struct BankForecastPoint: Decodable, Identifiable, Sendable {
     public let date: String
     public let projectedBalance: BankMoney
     public var id: String { date }
+    public init(date: String, projectedBalance: BankMoney) { self.date = date; self.projectedBalance = projectedBalance }
 }
 
 public struct BankForecastEvent: Decodable, Sendable {
@@ -65,12 +72,20 @@ public struct BankForecastEvent: Decodable, Sendable {
     public let description: String
     public let amount: BankMoney
     public let kind: String
+    public let isManual: Bool?
+    public init(accountId: String?, currency: String?, merchantLogo: String?, date: String, description: String, amount: BankMoney, kind: String, isManual: Bool? = nil) {
+        self.accountId = accountId; self.currency = currency; self.merchantLogo = merchantLogo; self.date = date
+        self.description = description; self.amount = amount; self.kind = kind; self.isManual = isManual
+    }
 }
 
 public struct BankForecastRisk: Decodable, Sendable {
     public let date: String
     public let projectedBalance: BankMoney
     public let reason: String
+    public init(date: String, projectedBalance: BankMoney, reason: String) {
+        self.date = date; self.projectedBalance = projectedBalance; self.reason = reason
+    }
 }
 
 /// Bank dates are calendar days in Auckland, including daylight-saving changes.

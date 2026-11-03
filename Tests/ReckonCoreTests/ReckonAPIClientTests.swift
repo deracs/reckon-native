@@ -94,6 +94,23 @@ struct ReckonAPIClientTests: Sendable {
         try bankExpect(nextSnapshotIDs.count == 1 && nextSnapshotIDs != snapshotIDs)
     }
 
+    func selectedSpendingPeriodUsesCompleteRangeAndExcludesTransfers() async throws {
+        BankFixtureProtocol.log.reset()
+        let rows = try await client().fetchSpending(from: "2026-09-01", to: "2026-09-30")
+        try bankExpect(rows.first?.category == "Groceries")
+        let requests = BankFixtureProtocol.log.snapshot()
+        try bankExpect(requests.count == 1)
+        let request = try bankRequire(requests.first)
+        let url = try bankRequire(request.url)
+        let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        try bankExpect(url.path == "/api/spending")
+        try bankExpect(items.contains(URLQueryItem(name: "from", value: "2026-09-01")))
+        try bankExpect(items.contains(URLQueryItem(name: "to", value: "2026-09-30")))
+        try bankExpect(items.contains(URLQueryItem(name: "excludeTransfers", value: "true")))
+        try bankExpect(!items.contains(where: { $0.name == "limit" }))
+        try bankExpect(request.value(forHTTPHeaderField: "Authorization") == "Bearer rest-test-token")
+    }
+
     func failedSummaryPreservesLiquidBalanceAndOtherStats() async throws {
         let dashboard = try await client(host: "partial.invalid").fetchDashboard()
         try bankExpect(dashboard.liquidBalance == Decimal(string: "123.45"))

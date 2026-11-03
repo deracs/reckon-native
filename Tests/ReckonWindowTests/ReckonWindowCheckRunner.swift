@@ -30,6 +30,8 @@ struct ReckonWindowCheckRunner {
                 try await waitForWindowState("app launch") {
                     (Mirror(reflecting: delegate).children.first(where: { $0.label == "statusItem" })?.value as? NSStatusItem)?.button != nil
                 }
+                try runManualFinancialStorageChecks()
+                print("PASS Manual accounts, goals and forecast settings are encrypted and survive reload")
                 try runUpdateCallbackChecks()
                 print("PASS Sparkle callbacks report current, failed, and incompatible update checks")
                 try await runWindowChecks(delegate)
@@ -45,6 +47,30 @@ struct ReckonWindowCheckRunner {
             }
         }
         withExtendedLifetime(delegate) { application.run() }
+    }
+
+    private static func runManualFinancialStorageChecks() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("ReckonManualCheck-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("accounts.enc")
+        let storage = try ManualFinancialAccountsStorage(url: url, key: Data(repeating: 7, count: 32))
+        let account = ManualFinancialAccount(name: "Fixture KiwiSaver", kind: "KiwiSaver", currency: "NZD", balance: 1234)
+        let goal = SavingsGoal(accountID: "fixture-account", name: "Fixture goal", target: 2000, deadline: nil, paydayIntervalDays: 14)
+        var settings = LocalFinancialSettings()
+        settings.accounts = [account]; settings.goals = [goal]; settings.forecastAdjustments.weeklySpending = 35
+        try storage.save(settings)
+        let encrypted = try Data(contentsOf: url)
+        guard encrypted.range(of: Data("Fixture KiwiSaver".utf8)) == nil else { throw WindowCheckFailure(description: "Manual account was saved in plaintext") }
+        let restored = try storage.load()
+        guard restored.accounts == [account], restored.goals == [goal], restored.forecastAdjustments.weeklySpending == 35 else {
+            throw WindowCheckFailure(description: "Manual financial settings did not survive reload")
+        }
+        let wrongKey = try ManualFinancialAccountsStorage(url: url, key: Data(repeating: 8, count: 32))
+        do {
+            _ = try wrongKey.load()
+            throw WindowCheckFailure(description: "Wrong key opened manual financial settings")
+        } catch is WindowCheckFailure { throw WindowCheckFailure(description: "Wrong key opened manual financial settings") }
+        catch { }
     }
 
     @MainActor private static func runWindowChecks(_ delegate: ReckonApplicationDelegate) async throws {
@@ -261,6 +287,9 @@ struct ReckonWindowCheckRunner {
             let popover = try storedPopover(delegate)
             let shouldOpen = !popover.isShown
             button.performClick(nil)
+            if shouldOpen && !NSApp.isActive && popover.isShown {
+                throw WindowCheckFailure(description: "Dropdown opened before application activation completed")
+            }
             try await waitForWindowState(shouldOpen ? "dropdown activation" : "dropdown dismissal") {
                 if !shouldOpen { return !popover.isShown }
                 return NSApp.isActive && popover.isShown && popover.contentViewController?.view.window?.isKeyWindow == true

@@ -32,6 +32,9 @@ private struct BankCheck {
         let backend = BundledBackendTests()
         let journal = BankJournalTests()
         var checks: [BankCheck] = [
+            BankCheck(name: "Manual forecasts and moved dates preserve account scope and boundaries") { try BankForecastAdjustmentsTests().manualSchedulesAndDateOverridesCoverBoundariesAndAccountScope() },
+            BankCheck(name: "Manual forecasts preserve calendar dates and read older settings") { try BankForecastAdjustmentsTests().manualCalendarSchedulesHandleMonthEndsAndLegacySettings() },
+            BankCheck(name: "Forecast corrections and everyday spending preserve account scope") { try BankForecastAdjustmentsTests().correctionsApplyOnlyToMatchingSeriesAndSpendingDoesNotDoubleCount() },
             BankCheck(name: "Bill records retain account/currency metadata and decode old payloads") { try BankBillAccountTests().billModelsRetainAccountCurrencyAndOptionalMetadata() },
             BankCheck(name: "Charge alert baselines remain separate for the same merchant on different accounts") { try BankBillAccountTests().chargeAlertsSeparateAccountsAndResetPooledBaselines() },
             BankCheck(name: "Desktop activity bank and account scopes intersect") { try BankActivityFilterTests().bankAndAccountFiltersIntersectWithoutLeakingOtherBanks() },
@@ -73,6 +76,7 @@ private struct BankCheck {
             BankCheck(name: "Source timestamp variants") { try dashboard.timestampFormatsAndMissingValues() },
             BankCheck(name: "Missing and multiline tokens fail validation") { try dashboard.rejectsMissingAndMultilineTokens() },
             BankCheck(name: "Three-month comparison and sample data") { try dashboard.trailingAverageUsesThreeFullMonthsIncludingZeroMonths() },
+            BankCheck(name: "Selected spending period uses its dates without the activity limit") { try await api.selectedSpendingPeriodUsesCompleteRangeAndExcludesTransfers() },
             BankCheck(name: "REST authentication, endpoints, and date queries") { try await api.requestsCorrectRESTEndpointsWithBearerAndNZDateWindows() },
             BankCheck(name: "Partial summary failure retains balances") { try await api.failedSummaryPreservesLiquidBalanceAndOtherStats() },
             BankCheck(name: "Unauthorized accounts fail closed") { try await api.unauthorizedAccountsFailWithoutTreatingThemAsZeroBalance() },

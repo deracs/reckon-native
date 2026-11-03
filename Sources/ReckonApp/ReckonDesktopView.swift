@@ -80,20 +80,13 @@ struct ReckonDesktopView: View {
                     if let dashboard = store.dashboard, !dashboard.accounts.isEmpty {
                         Text("CONNECTED BANKS").font(.system(size: 10, weight: .medium)).foregroundStyle(.secondary)
                             .padding(.horizontal, 12).padding(.bottom, 7)
-                        ForEach(BankAccountGroup.groupAccounts(dashboard.accounts)) { bank in
-                            Button { navigation.selectBank(bank.id) } label: {
-                                HStack(spacing: 8) {
-                                    if let account = bank.logoAccount { BankLogoView(account: account).scaleEffect(0.8).frame(width: 26, height: 26) }
-                                    Text(bank.name).font(.system(size: 12)).lineLimit(1)
-                                    Spacer(minLength: 0)
-                                    Text(bank.accounts.count.formatted()).font(.system(size: 10)).foregroundStyle(.secondary)
-                                        .padding(.horizontal, 5).padding(.vertical, 2).background(.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 4))
-                                }
-                                .padding(.horizontal, 10).padding(.vertical, 5).contentShape(Rectangle())
+                        ForEach(Array(BankAccountGroup.groupAccounts(dashboard.accounts).enumerated()), id: \.element.id) { index, bank in
+                            if index < 9 {
+                                bankSidebarButton(bank, shortcut: index + 1)
+                                    .keyboardShortcut(KeyEquivalent(Character(String(index + 1))), modifiers: .command)
+                            } else {
+                                bankSidebarButton(bank, shortcut: nil)
                             }
-                            .buttonStyle(.plain)
-                            .background(navigation.bankID == bank.id ? ReckonDesktopAppearance.selection : .clear, in: RoundedRectangle(cornerRadius: 8))
-                            .help(bank.name).accessibilityLabel("\(bank.name), \(bank.accounts.count) \(bank.accounts.count == 1 ? "account" : "accounts")")
                         }
                     }
                 }
@@ -108,6 +101,26 @@ struct ReckonDesktopView: View {
         .padding(.horizontal, 12).padding(.top, 44).padding(.bottom, 20)
         .frame(width: 204).frame(maxHeight: .infinity)
         .background(ReckonDesktopAppearance.sidebar.opacity(0.85))
+    }
+
+    private func bankSidebarButton(_ bank: BankAccountGroup, shortcut: Int?) -> some View {
+        Button { navigation.selectBank(bank.id) } label: {
+            HStack(spacing: 8) {
+                if let account = bank.logoAccount { BankLogoView(account: account).scaleEffect(0.8).frame(width: 26, height: 26) }
+                Text(bank.name).font(.system(size: 12)).lineLimit(1)
+                Spacer(minLength: 0)
+                if let shortcut {
+                    Text("⌘\(shortcut)").font(.system(size: 10)).foregroundStyle(.secondary)
+                }
+                Text(bank.accounts.count.formatted()).font(.system(size: 10)).foregroundStyle(.secondary)
+                    .padding(.horizontal, 5).padding(.vertical, 2).background(.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 4))
+            }
+            .padding(.horizontal, 10).padding(.vertical, 5).contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .background(navigation.bankID == bank.id ? ReckonDesktopAppearance.selection : .clear, in: RoundedRectangle(cornerRadius: 8))
+        .help(shortcut.map { "\(bank.name) · ⌘\($0)" } ?? bank.name)
+        .accessibilityLabel("\(bank.name), \(bank.accounts.count) \(bank.accounts.count == 1 ? "account" : "accounts")")
     }
 
     private func sidebarButton(_ title: String, image: String, selected: Bool, action: @escaping () -> Void) -> some View {
@@ -164,14 +177,18 @@ struct ReckonDesktopView: View {
                         switch navigation.section {
                         case .overview: BankDesktopOverviewView(store: store, navigation: navigation)
                         case .accounts: BankDesktopAccountsView(store: store, navigation: navigation)
-                        case .forecast: BankDesktopForecastPage(forecast: dashboard.forecast)
-                        case .spending: BankDesktopSpendingView(dashboard: dashboard)
-                        case .standingOrders: BankDesktopBillsView(dashboard: dashboard)
+                        case .forecast: BankDesktopForecastPage(store: store)
+                        case .spending: BankDesktopSpendingView(store: store, dashboard: dashboard)
+                        case .standingOrders: BankDesktopBillsView(dashboard: dashboard, forecast: store.adjustedForecast)
                         case .activity: EmptyView()
                         }
                     }.frame(maxWidth: .infinity, alignment: .topLeading).padding(.horizontal, 28).padding(.bottom, 20)
                 }.id(navigation.section)
             }
+        } else if navigation.section == .accounts {
+            ScrollView { BankDesktopAccountsView(store: store, navigation: navigation).padding(28) }
+        } else if navigation.section == .overview && !store.manualAccounts.isEmpty {
+            ScrollView { VStack(alignment: .leading, spacing: 24) { NetWorthView(store: store); Divider(); SavingsGoalsView(store: store) }.frame(maxWidth: .infinity, alignment: .leading).padding(28) }
         } else {
             VStack(spacing: 16) {
                 if store.isLoading { ProgressView(); Text("Reading your accounts…").font(.headline) }

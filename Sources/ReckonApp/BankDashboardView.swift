@@ -67,6 +67,7 @@ struct BankDashboardView: View {
                         switch selectedTab {
                         case .overview:
                             liquidBalance(dashboard).reckonCard()
+                            NetWorthView(store: store).reckonCard()
                             cashflow(dashboard).reckonCard()
                             freshness(dashboard).reckonCard()
                         case .accounts:
@@ -74,11 +75,11 @@ struct BankDashboardView: View {
                         case .activity:
                             BankActivityView(store: store)
                         case .forecast:
-                            BankForecastView(section: dashboard.forecast).reckonCard()
+                            BankForecastView(section: store.adjustedForecast).reckonCard()
                         case .spending:
                             spending(dashboard).reckonCard()
                         case .standingOrders:
-                            BankUpcomingBillsView(section: dashboard.forecast).reckonCard()
+                            BankUpcomingBillsView(section: store.adjustedForecast).reckonCard()
                             standingOrders(dashboard).reckonCard()
                         }
                     }
@@ -143,7 +144,7 @@ struct BankDashboardView: View {
                 Text("\(change >= 0 ? "+" : "")\(BankFormatting.money(change)) since last look")
                     .font(.caption).foregroundStyle(.secondary).monospacedDigit()
             }
-            BankPaydayView(forecast: dashboard.forecast).padding(.top, 8)
+            BankPaydayView(forecast: store.adjustedForecast).padding(.top, 8)
         }
     }
 

@@ -11,9 +11,12 @@ struct BankDesktopOverviewView: View {
             VStack(alignment: .leading, spacing: 24) {
                 HStack(alignment: .top, spacing: 28) {
                     VStack(alignment: .leading, spacing: 24) {
-                        balance(dashboard)
-                        if let forecast = dashboard.forecast.value { BankDesktopForecastChart(forecast: forecast) }
-                        else { BankDesktopSectionError(message: dashboard.forecast.errorMessage ?? "Forecast unavailable.") }
+                        HStack(alignment: .top, spacing: 28) {
+                            balance(dashboard).frame(maxWidth: .infinity, alignment: .leading)
+                            NetWorthView(store: store, prominent: true).frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        if let forecast = store.adjustedForecast.value { BankDesktopForecastChart(forecast: forecast) }
+                        else { BankDesktopSectionError(message: store.adjustedForecast.errorMessage ?? "Forecast unavailable.") }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     Rectangle().fill(.primary.opacity(0.1)).frame(width: 1).frame(height: 412)
@@ -24,6 +27,8 @@ struct BankDesktopOverviewView: View {
                     }
                     .frame(width: 238, alignment: .leading)
                 }
+                Divider()
+                SavingsGoalsView(store: store)
                 Divider()
                 recentActivity(dashboard)
                 sourceFreshness(dashboard)
@@ -78,7 +83,7 @@ struct BankDesktopOverviewView: View {
     private func comingUp(_ dashboard: BankDashboard) -> some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Coming up").font(.system(size: 18, weight: .semibold))
-            if let forecast = dashboard.forecast.value {
+            if let forecast = store.adjustedForecast.value {
                 if let payday = forecast.estimatedPayday {
                     eventRow("Estimated payday", date: payday.date, amount: payday.amount.value, image: "calendar", income: true)
                     Divider()
@@ -88,7 +93,7 @@ struct BankDesktopOverviewView: View {
                 }
                 if forecast.upcomingBills.isEmpty { Text("No bills expected in the next 7 days.").font(.caption).foregroundStyle(.secondary) }
                 Text("Estimates · NZD").font(.system(size: 10)).foregroundStyle(.secondary)
-            } else { BankDesktopSectionError(message: dashboard.forecast.errorMessage ?? "Upcoming events unavailable.") }
+            } else { BankDesktopSectionError(message: store.adjustedForecast.errorMessage ?? "Upcoming events unavailable.") }
         }
     }
 
