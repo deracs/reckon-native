@@ -66,7 +66,8 @@ struct BankDesktopActivityView: View {
                 Text(selectedBank?.name ?? "All banks").font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(1)
             }
         }
-        .padding(.horizontal, 10).padding(.vertical, 7).frame(width: 280)
+        .padding(.horizontal, 10).padding(.vertical, 7)
+        .frame(width: 260, alignment: .leading)
         .background(.white.opacity(0.6), in: RoundedRectangle(cornerRadius: 8))
         .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.primary.opacity(0.12)))
     }
