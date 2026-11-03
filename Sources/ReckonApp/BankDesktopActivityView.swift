@@ -8,14 +8,6 @@ struct BankDesktopActivityView: View {
     @ObservedObject var navigation: ReckonDesktopNavigation
     @State private var sortOrder = [KeyPathComparator(\BankTransaction.date, order: .reverse)]
 
-    private var banks: [BankAccountGroup] { BankAccountGroup.groupAccounts(store.dashboard?.accounts ?? []) }
-    private var selectedAccount: BankAccount? { store.dashboard?.accounts.first { $0.id == navigation.accountID } }
-    private var selectedBank: BankAccountGroup? {
-        banks.first { bank in
-            if let account = selectedAccount { return bank.accounts.contains { $0.id == account.id } }
-            return bank.id == navigation.bankID
-        }
-    }
     private var rows: [BankTransaction] {
         let all = navigation.onlyNew ? (store.visitSummary?.newTransactions ?? []) : (store.dashboard?.transactions.value ?? [])
         return BankActivityFilter(search: navigation.search, bankID: navigation.bankID, accountID: navigation.accountID)
@@ -50,50 +42,12 @@ struct BankDesktopActivityView: View {
     }
 
     private var accountFilterMenu: some View {
-        HStack(spacing: 10) {
-            if let account = selectedBank?.logoAccount { BankLogoView(account: account) }
-            else {
-                Image(systemName: "building.2").font(.system(size: 17)).foregroundStyle(ReckonAppearance.accent)
-                    .frame(width: 32, height: 32).background(ReckonDesktopAppearance.selection, in: RoundedRectangle(cornerRadius: 7))
-            }
-            VStack(alignment: .leading, spacing: 3) {
-                Menu { accountFilterOptions } label: {
-                    Text(selectedAccount.map { "\($0.name) · \($0.currency)" } ?? "All accounts")
-                }
-                .menuStyle(.borderlessButton).font(.system(size: 12, weight: .medium))
-                .accessibilityLabel("Filter activity accounts")
-                .accessibilityValue("\(selectedBank?.name ?? "All banks"), \(selectedAccount?.name ?? "All accounts")")
-                Text(selectedBank?.name ?? "All banks").font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(1)
-            }
+        BankAccountFilterControl(accounts: store.dashboard?.accounts ?? [], bankID: navigation.bankID, accountID: navigation.accountID) { bankID, accountID in
+            navigation.bankID = bankID
+            navigation.accountID = accountID
+            navigation.transactionID = nil
         }
-        .padding(.horizontal, 10).padding(.vertical, 7)
-        .frame(width: 260, alignment: .leading)
-        .background(.white.opacity(0.6), in: RoundedRectangle(cornerRadius: 8))
-        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.primary.opacity(0.12)))
-    }
-
-    @ViewBuilder private var accountFilterOptions: some View {
-        Button { selectActivityScope(bankID: nil, accountID: nil) } label: {
-            Label("All banks · all accounts", systemImage: navigation.bankID == nil && navigation.accountID == nil ? "checkmark" : "building.2")
-        }
-        ForEach(banks) { bank in
-            Section(bank.name) {
-                Button { selectActivityScope(bankID: bank.id, accountID: nil) } label: {
-                    Label("All \(bank.name) accounts", systemImage: navigation.bankID == bank.id && navigation.accountID == nil ? "checkmark" : "building.columns")
-                }
-                ForEach(bank.accounts) { account in
-                    Button { selectActivityScope(bankID: bank.id, accountID: account.id) } label: {
-                        Label("\(account.name) · \(account.currency)", systemImage: navigation.accountID == account.id ? "checkmark" : "creditcard")
-                    }
-                }
-            }
-        }
-    }
-
-    private func selectActivityScope(bankID: String?, accountID: String?) {
-        navigation.bankID = bankID
-        navigation.accountID = accountID
-        navigation.transactionID = nil
+        .frame(width: 260, height: 46)
     }
 
     private var activityTable: some View {

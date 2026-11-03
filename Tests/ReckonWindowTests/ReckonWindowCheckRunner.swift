@@ -155,6 +155,7 @@ struct ReckonWindowCheckRunner {
         try expectWindow(NSApp.sendAction(NSSelectorFromString("searchDesktop"), to: delegate, from: nil), "Desktop search action was not connected")
         try await waitForWindowState("desktop search") { navigation.section == .activity && desktop.isKeyWindow }
         try expectWindow(desktopWindow() === desktop, "Search created a duplicate desktop window")
+        try await runAccountFilterChecks(desktop, navigation: navigation)
         navigation.selectBank("Sample Bank")
         navigation.selectAccount("spending")
         navigation.search = "coffee"
@@ -187,6 +188,36 @@ struct ReckonWindowCheckRunner {
         try expectWindow(abs(reopened.frame.width - size.width) < 2 && abs(reopened.frame.height - size.height) < 2,
                          "Desktop did not retain the resized window frame")
         reopened.close()
+    }
+
+    @MainActor private static func runAccountFilterChecks(_ window: NSWindow, navigation: ReckonDesktopNavigation) async throws {
+        try await waitForWindowState("account selector layout") {
+            guard let content = window.contentView, let button = accountFilterButton(in: content) else { return false }
+            return button.bounds.width >= 250 && button.bounds.height >= 40
+        }
+        guard let content = window.contentView, let button = accountFilterButton(in: content) else {
+            throw WindowCheckFailure(description: "Desktop activity is missing its native account selector")
+        }
+        try expectWindow(window.makeFirstResponder(button) && window.firstResponder === button && button.canBecomeKeyView,
+                         "Account selector cannot receive keyboard focus")
+        for x in [CGFloat(1), CGFloat(20), button.bounds.midX, button.bounds.maxX - 1] {
+            let point = button.convert(NSPoint(x: x, y: button.bounds.midY), to: content.superview)
+            try expectWindow(content.hitTest(point) === button, "Account selector has an unclickable logo, label, or empty area")
+        }
+        guard let item = button.menu?.items.first(where: { $0.title == "Rainy day · NZD" }), let action = item.action else {
+            throw WindowCheckFailure(description: "Account selector is missing the sample savings account")
+        }
+        try expectWindow(NSApp.sendAction(action, to: item.target, from: item), "Native account selection was not connected")
+        try expectWindow(navigation.bankID == "Sample Bank" && navigation.accountID == "savings",
+                         "Native account menu did not apply its bank and account scope")
+    }
+
+    @MainActor private static func accountFilterButton(in view: NSView) -> BankAccountFilterButton? {
+        if let button = view as? BankAccountFilterButton { return button }
+        for child in view.subviews {
+            if let button = accountFilterButton(in: child) { return button }
+        }
+        return nil
     }
 
     @MainActor private static func desktopWindow() -> NSWindow? {
