@@ -5,8 +5,8 @@ import SwiftUI
 enum ReckonAppearance {
     static let accent = Color(nsColor: NSColor(name: nil) { appearance in
         appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-            ? NSColor(red: 0.63, green: 0.65, blue: 1, alpha: 1)
-            : NSColor(red: 0.30, green: 0.34, blue: 0.94, alpha: 1)
+            ? NSColor(red: 0.42, green: 0.70, blue: 1, alpha: 1)
+            : NSColor(red: 0.15, green: 0.44, blue: 0.76, alpha: 1)
     })
     static let background = Color(nsColor: canvasColor)
     static let surface = Color(nsColor: .controlBackgroundColor)
@@ -44,4 +44,13 @@ struct ReckonIconButtonStyle: ButtonStyle {
             .background(.primary.opacity(configuration.isPressed ? 0.10 : 0.045), in: Circle())
             .contentShape(Circle())
     }
+}
+
+/// The approved desktop direction uses a light canvas and restrained sky-blue selections.
+enum ReckonDesktopAppearance {
+    static let canvas = Color(red: 0.985, green: 0.985, blue: 0.98)
+    static let sidebar = Color(red: 0.94, green: 0.955, blue: 0.97)
+    static let selection = Color(red: 0.88, green: 0.94, blue: 1)
+    static let income = Color(red: 0.08, green: 0.48, blue: 0.23)
+    static let expense = Color(red: 0.77, green: 0.32, blue: 0.22)
 }

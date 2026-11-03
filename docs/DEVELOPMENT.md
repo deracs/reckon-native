@@ -47,7 +47,7 @@ Build the app before the checks. The Swift checks exercise the bundled process. 
 
 The Swift checks use an executable runner because the standalone Command Line Tools omit the Swift Testing and XCTest modules.
 
-The window lifecycle checks require an idle, logged-in macOS desktop. They drive the app's actual menu-bar and Settings actions with sample data, without reading credentials or starting a backend. They cover reopening the dropdown while Settings is visible, inactive, hidden, minimized, or closed, and restoring the existing Settings window. They also exercise Sparkle's completion callbacks without network requests. Core checks cover the automatic-check cooldown, preferences, and saved results.
+The window lifecycle checks require an idle, logged-in macOS desktop. They drive the app's actual menu-bar and Settings actions with sample data, without reading credentials or starting a backend. They cover reopening the dropdown while Settings is visible, inactive, hidden, minimized, or closed, and restoring the existing Settings window. Desktop checks cover the shared store and authentication session, comparison baseline, Settings, search navigation, account-selector hit testing and keyboard focus, native account selection, minimize and restore, lock clearing private selections, close and reopen, and saved window size. They also exercise Sparkle's completion callbacks without network requests. Core checks cover the automatic-check cooldown, preferences, and saved results.
 
 The inactive-Settings check uses a separate fixture app for the focus handoff. It waits for macOS to activate that app before the next menu-bar click. This prevents a delayed deactivation that can close a later dropdown. Both fixture apps exit after the check.
 
@@ -83,9 +83,26 @@ For UI checks with sample data:
 
 ```sh
 open -n dist/Reckon.app --args --demo --preview
+open -n dist/Reckon.app --args --demo --desktop
 ```
 
-Demo mode displays a sample-data label and skips authentication for UI checks. It does not read the saved credentials or start a backend. Only these fixtures are available in demo mode. The `--preview` option also opens the dropdown in a window.
+Demo mode displays a sample-data label and skips authentication for UI checks. It does not read the saved credentials or start a backend. Only these fixtures are available in demo mode. The `--preview` option opens the dropdown in a window. `--desktop` opens the full desktop interface. Use a separate bundle identifier for a QA app if the installed Reckon is running. Never replace an installed app solely to capture sample screenshots.
+
+## Desktop window
+
+`ReckonApplicationDelegate` owns one desktop window and retains the existing status-item dropdown. `ReckonDesktopView` and `BankDashboardView` share `BankDashboardStore`, `ReckonAppLock`, and `ReckonSoftwareUpdates`. Opening the desktop switches the app to the regular activation policy for Dock and Command–Tab support. Reopening restores the existing window, including a minimized window. Closing it keeps Reckon running. The native frame is saved under `ReckonDesktop`.
+
+The desktop opens locked by default at launch. `ReckonDesktopPreferences` stores the independent **Open desktop window at launch** preference. Disabling it preserves menu-bar-only startup. Demo mode opens the desktop only with `--desktop` and uses the demo authenticator.
+
+`ReckonDashboardSection` supplies the same six destinations to both interfaces. `ReckonDesktopNavigation` owns desktop-only bank, account, search, and transaction selections. Lock clears those values and removes the entire private desktop view, including bank names. The shared ten-minute session, sleep lock, and canceled-authentication rules apply to both interfaces.
+
+`BankActivityFilter` intersects bank and account scope and searches merchant, description, category, bank, account, and currency. Filtering and native table sorting use the fetched activity page; they do not fetch additional history. `BankAccountFilterControl` uses a native pop-up button for the entire account field, with a decorative SwiftUI label that does not intercept clicks or accessibility. Its text lines share a left edge, its chevron sits at the trailing edge, and it provides hover and native keyboard-focus states. The menu groups accounts by bank and shows the selected bank's cached logo and name. Native table selection opens transaction details. No currency conversion or new financial calculations are introduced.
+
+A visit begins only once while a financial surface is open. Opening or closing the dropdown alongside an open desktop does not reset its comparison baseline. Closing the last financial surface ends the visit; locking always ends it.
+
+The desktop uses a light appearance, blue navigation, and the same visible currency, forecast, partial-failure, and source-freshness warnings as the dropdown. The [README](../README.md#desktop-app) lists shortcuts and sample screenshots. The [design reference](design/README.md) contains the generated concept, not an app screenshot.
+
+The muted lowercase `reckon.` wordmark sits beneath **Lock Reckon** in the sidebar, matching the web brand. Navigation stays in the sidebar, with its first row aligned to the page heading. The desktop name uses bundled Newsreader SemiBold at 26 points, matching the web wordmark's typeface. `ReckonBrandTypography` registers it only for this process and sets its weight and optical-size axes. Other text uses the macOS system font. The build includes the font and its SIL Open Font License from `Resources/Fonts`; no system font installation or download is required at runtime.
 
 ## Data and calculations
 

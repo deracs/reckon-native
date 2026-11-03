@@ -1,9 +1,35 @@
 # Reckon Native
 
-Your NZ bank accounts, balances, and recent activity in the macOS menu bar.
+Your NZ bank accounts, balances, and recent activity on your Mac.
 Reckon connects to Akahu and runs as a standalone app. You do not need a terminal or a separate server.
 
 **[Download the latest release](https://github.com/deracs/reckon-native/releases/latest)**
+
+## Desktop app
+
+Reckon includes a full desktop window alongside the menu-bar dropdown.
+
+The desktop uses a light canvas, soft blue navigation, bank shortcuts, an integrated balance forecast, and a searchable transaction table with account filters and transaction details. Bank and account filters show the bank name and logo; the account menu groups accounts under each bank. All six sections use the same data and unlock session as the dropdown.
+
+![Desktop overview with fictional sample data](docs/screenshots/desktop-overview-demo.jpg)
+
+![Activity with bank and account identities](docs/screenshots/desktop-activity-demo.jpg)
+
+Open the desktop from **Open app** in the dropdown or **Window → Open Reckon**. Opening Reckon from the Dock also restores its window. Closing or minimizing it leaves the menu-bar dropdown available. Window size and position are saved.
+
+The desktop opens locked at launch. To start with only the menu-bar icon, disable **Settings → General → Open desktop window at launch**. **Launch at login** remains a separate option.
+
+| Shortcut | Action |
+| --- | --- |
+| **⌘0** | Open or restore the desktop window. |
+| **⌘1–6** | Open Overview, Accounts, Activity, Forecast, Spending, or Bills. |
+| **⌘F** | Focus activity search. |
+| **⌘,** | Open Settings during an unlocked session. |
+| **⌘W / ⌘M** | Close or minimize the active window. |
+
+The desktop requires the same macOS authentication as the dropdown. Locking either surface clears desktop searches and selections and hides all bank content. Desktop demo previews use fictional data and skip authentication.
+
+The [design reference](docs/design/README.md) records the approved visual direction. The screenshots above show the implemented app.
 
 ## Screenshots
 
@@ -74,7 +100,7 @@ The Settings window has four sections in its sidebar. Its title bar retains the 
 
 | Section | Controls and details |
 | --- | --- |
-| **General** | Launch at login, the keyboard shortcut, and local history status. |
+| **General** | Launch at login, opening the desktop at launch, the keyboard shortcut, and local history status. |
 | **Connection** | Akahu connection status and token fields. Token changes require an explicit save. Disconnect requires confirmation. |
 | **Alerts** | Notifications, balance limits, balance targets, and deposit alerts. Bank names and icons separate the account rows. |
 | **Updates** | Installed and latest versions, last check time, check result, and automatic update options. |

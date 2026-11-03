@@ -32,6 +32,9 @@ private struct BankCheck {
         let backend = BundledBackendTests()
         let journal = BankJournalTests()
         var checks: [BankCheck] = [
+            BankCheck(name: "Desktop activity bank and account scopes intersect") { try BankActivityFilterTests().bankAndAccountFiltersIntersectWithoutLeakingOtherBanks() },
+            BankCheck(name: "Activity search includes bank, account, category, currency and description") { try BankActivityFilterTests().searchIncludesMerchantDescriptionCategoryBankAccountAndCurrency() },
+            BankCheck(name: "Activity filtering retains page order, money and orphaned transactions") { try BankActivityFilterTests().emptySearchRetainsPageOrderMoneyCurrencyAndOrphanedRows() },
             BankCheck(name: "Software updates reject foreign hosts, repositories and credential URLs") { try ReckonUpdateFeedTests().restrictsUpdateDownloadsToThisRepository() },
             BankCheck(name: "Opening views coalesces update checks and respects opt-out") { try ReckonUpdateCheckStateTests().openingViewsCoalescesChecksAndRespectsPreferences() },
             BankCheck(name: "Update failures retain the known release without claiming success") { try ReckonUpdateCheckStateTests().failuresDoNotClaimTheAppIsCurrentOrEraseTheKnownRelease() },
