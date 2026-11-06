@@ -237,15 +237,13 @@ The optional baseline check compares JSON responses from both implementations ag
 
 The Rust harness preserves the workload and report metrics. Older reports used a Node harness. Harness and HTTP-client differences can affect timings. The warm reload metric permits comparison with earlier measurements. It does not represent the current app lifecycle.
 
-See the [Rust comparison](performance/rust-backend-2026-10-22.md) for results and limits. The older reports retain their original TypeScript measurements.
-
 For a read-only comparison with the saved Akahu connection, use:
 
 ```sh
 cargo reckon compare-live --runs 5 --replay-runs 20
 ```
 
-This command compares direct live requests, then replays one real-data snapshot held only in memory. It reads credentials from Keychain and keeps all bank records out of its output. The default report path is `.build/live-backend-comparison.json`. See the [real Akahu comparison](performance/live-akahu-backend-2026-10-22.md) for results and limits.
+This command compares direct live requests, then replays one real-data snapshot held only in memory. It reads credentials from Keychain and keeps all bank records out of its output. The default report path is `.build/live-backend-comparison.json`.
 
 ## GitHub builds and releases
 
