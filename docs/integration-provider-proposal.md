@@ -1,18 +1,18 @@
 # Proposal: a boundary for banking integrations
 
-Status: exploration for review; no implementation is proposed in this PR.
+Status: the initial provider boundary is implemented with Akahu as the only production provider. The later stages remain proposals.
 
 ## Problem
 
 Reckon reads bank data through Akahu. The backend has reusable bank models and
-calculations, but its request handling accepts `AkahuBankData` directly. The
+calculations, but its request handling previously accepted `AkahuBankData` directly. The
 backend startup handshake, credentials, connection settings, and error messages
 also assume Akahu. A second banking provider would therefore require changes
 throughout the app, even if it supplied the same basic data.
 
 ## Proposed direction
 
-Introduce a small banking data provider boundary around the reads Reckon needs:
+The banking data provider boundary covers the reads Reckon needs:
 accounts, account freshness, and transaction history. A provider translates its
 source data into Reckon's bank models. The shared backend uses those models for
 filtering, summaries, recurring transactions, and forecasting.
@@ -20,7 +20,7 @@ filtering, summaries, recurring transactions, and forecasting.
 ```text
 Swift interface and connection management
         ↓ credentials over the existing private startup channel
-Backend startup selects and constructs the configured provider
+Backend startup constructs the Akahu provider
         ↓ supplies the provider to request handling
 Request handling → banking data provider → Akahu adapter → Akahu API
         ↓                   ↓
@@ -36,13 +36,13 @@ validation, and credential handling. The local API remains private and read-only
 ### Where dependency injection fits
 
 Backend startup already constructs the Akahu client and passes it into request
-handling. That is dependency injection with a concrete dependency. The proposed
-change would have request handling depend on a provider contract and receive an
-implementation at startup. This gives the handlers a seam for a future provider
+handling. That was dependency injection with a concrete dependency. Request
+handling now depends on a provider contract and receives its implementation at
+startup. This gives the handlers a seam for a future provider
 and for a fixture implementation. Rust generics, a trait object, or an enum are
-possible ways to express it; choose the simplest option after checking async
-lifetimes, ownership, and the existing runtime. A container, dynamic plugin
-loader, and third-party extension API are not required.
+possible ways to express it. The implementation uses a generic trait bound and
+static dispatch. A container, dynamic plugin loader, and third-party extension
+API are not required.
 
 The contract must expose provider-neutral records, rather than Akahu wire types.
 It should preserve shared snapshot storage and borrowed transaction reads where
@@ -50,13 +50,13 @@ practical, and should define date range, pending transaction, cancellation, and
 error semantics explicitly. Avoid a forwarding abstraction that merely renames
 Akahu methods without removing the coupling.
 
-## Suggested stages
+## Stages
 
-1. **Characterize the current behavior.** Use the existing fictional HTTP
-   fixtures to establish the current local API responses, errors, pagination,
+1. **Characterize the current behavior (existing coverage).** Use the existing
+   fictional HTTP fixtures to establish the current local API responses, errors, pagination,
    retries, cancellation, caching, and dashboard snapshot behavior.
-2. **Extract the provider boundary with Akahu as its first implementation.**
-   Move source-specific conversion behind it and supply the provider at backend
+2. **Extract the provider boundary (implemented).** With Akahu as the first
+   provider, move source-specific conversion behind it and supply the provider at backend
    startup. Keep the existing Akahu authentication, UI, output, and calculations
    unchanged. Add a focused fixture provider test showing shared request handling
    consumes provider-neutral data, alongside the existing Akahu integration tests.

@@ -1,6 +1,6 @@
-use crate::akahu_bank_data::AkahuBankData;
 use crate::backend_handshake::BackendSecret;
 use crate::bank_calendar::{add_bank_months, bank_today, parse_bank_date};
+use crate::bank_data_provider::{BankDataProvider, BankReadError};
 use crate::bank_derivations::{
     RecurringDirection, detect_bank_recurring, filter_bank_transfers, forecast_bank_cashflow,
     summarize_bank_cashflow, summarize_bank_spending,
@@ -79,7 +79,7 @@ pub(crate) async fn serve_bank_request(
     request: Request<Incoming>,
     port: u16,
     token: &BackendSecret,
-    bank: &AkahuBankData,
+    bank: &impl BankDataProvider,
 ) -> Result<Response<Full<Bytes>>, Infallible> {
     let header = |name: &str| request.headers().get(name).and_then(|v| v.to_str().ok());
     if header("host") != Some(format!("127.0.0.1:{port}").as_str())
@@ -182,37 +182,25 @@ pub(crate) async fn serve_bank_request(
             "Invalid bank query.",
         ));
     };
-    let result: Result<Value, crate::akahu_bank_data::BankReadError> = async {
+    let result: Result<Value, BankReadError> = async {
         if matches!(path, "/accounts" | "/freshness") {
-            let accounts = bank.list_source_accounts().await?;
             return Ok(if path == "/accounts" {
-                json!(
-                    accounts
-                        .iter()
-                        .map(|a| a.to_bank_account())
-                        .collect::<Vec<_>>()
-                )
+                json!(bank.list_bank_accounts().await?)
             } else {
-                json!(
-                    accounts
-                        .iter()
-                        .map(|a| a.to_account_freshness())
-                        .collect::<Vec<_>>()
-                )
+                json!(bank.list_account_freshness().await?)
             });
         }
         if path == "/forecast" {
             let today = bank_today();
             let accounts: Vec<_> = bank
-                .list_source_accounts()
+                .list_bank_accounts()
                 .await?
-                .iter()
-                .map(|a| a.to_bank_account())
+                .into_iter()
                 .filter(|a| a.is_liquid_nzd())
                 .collect();
             let ids: HashSet<AccountId> = accounts.iter().map(|a| a.id.clone()).collect();
             let history = bank
-                .fetch_transactions(Some(add_bank_months(today, -6)), Some(today), snapshot)
+                .fetch_bank_transactions(Some(add_bank_months(today, -6)), Some(today), snapshot)
                 .await?;
             let cleaned: Vec<_> = filter_bank_transfers(history.iter(), exclude)
                 .into_iter()
@@ -229,7 +217,7 @@ pub(crate) async fn serve_bank_request(
                 &detect_bank_recurring(&cleaned, 2., RecurringDirection::Income),
             ));
         }
-        let history = bank.fetch_transactions(from, to, snapshot).await?;
+        let history = bank.fetch_bank_transactions(from, to, snapshot).await?;
         let mut cleaned = filter_bank_transfers(history.iter(), exclude);
         Ok(match path {
             "/spending" => summarize_bank_spending(&cleaned),
@@ -285,4 +273,123 @@ fn json_bank_response(value: Value) -> Response<Full<Bytes>> {
         hyper::header::HeaderValue::from_static("application/json"),
     );
     response
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::bank_data_provider::{BankSnapshot, BankTransactionView};
+    use crate::bank_models::{
+        AccountFreshness, BankAccount, BankTransaction, BankTransactionSource, Money, TransactionId,
+    };
+    use chrono::NaiveDate;
+    use hyper::server::conn::http1;
+    use hyper::service::service_fn;
+    use hyper_util::rt::TokioIo;
+    use std::sync::Arc;
+    use tokio::net::TcpListener;
+
+    struct FixtureBankProvider;
+
+    impl BankDataProvider for FixtureBankProvider {
+        async fn list_bank_accounts(&self) -> Result<Vec<BankAccount>, BankReadError> {
+            Ok(vec![BankAccount {
+                id: AccountId("fixture-account".into()),
+                name: "Fixture account".into(),
+                account_type: "checking".into(),
+                currency: "NZD".into(),
+                balance: Money(100.into()),
+                available_balance: None,
+                credit_limit: None,
+                account_number: None,
+                status: None,
+                bank_name: None,
+                bank_logo: None,
+            }])
+        }
+
+        async fn list_account_freshness(&self) -> Result<Vec<AccountFreshness>, BankReadError> {
+            Ok(vec![AccountFreshness {
+                account_id: AccountId("fixture-account".into()),
+                account_name: "Fixture account".into(),
+                balance_refreshed_at: None,
+                transactions_refreshed_at: None,
+                party_refreshed_at: None,
+                meta_refreshed_at: None,
+            }])
+        }
+
+        async fn fetch_bank_transactions(
+            &self,
+            _from: Option<NaiveDate>,
+            _to: Option<NaiveDate>,
+            _snapshot: Option<&str>,
+        ) -> Result<BankTransactionView, BankReadError> {
+            let date = bank_today();
+            Ok(BankTransactionView {
+                snapshot: Arc::new(BankSnapshot {
+                    from: date,
+                    to: date,
+                    transactions: vec![BankTransaction {
+                        source: BankTransactionSource::Posted,
+                        id: TransactionId("fixture-transaction".into()),
+                        account_id: AccountId("fixture-account".into()),
+                        date,
+                        description: "Fixture purchase".into(),
+                        merchant: None,
+                        merchant_logo: None,
+                        category: Some("Groceries".into()),
+                        amount: Money((-25).into()),
+                        currency: "NZD".into(),
+                    }],
+                }),
+                range: None,
+            })
+        }
+    }
+
+    #[tokio::test]
+    async fn bank_routes_read_normalized_data_from_fixture_provider() {
+        let listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("Fixture listener binds");
+        let port = listener
+            .local_addr()
+            .expect("Fixture listener has an address")
+            .port();
+        let token: BackendSecret =
+            serde_json::from_str("\"fixture-token\"").expect("Fixture token is valid");
+        let server = async {
+            for _ in 0..3 {
+                let (stream, _) = listener.accept().await.expect("Fixture client connects");
+                let service = service_fn(|request| {
+                    serve_bank_request(request, port, &token, &FixtureBankProvider)
+                });
+                http1::Builder::new()
+                    .serve_connection(TokioIo::new(stream), service)
+                    .await
+                    .expect("Fixture request completes");
+            }
+        };
+        let client = async {
+            let client = reqwest::Client::new();
+            for (path, field, expected) in [
+                ("accounts", "name", "Fixture account"),
+                ("freshness", "accountName", "Fixture account"),
+                ("transactions", "description", "Fixture purchase"),
+            ] {
+                let response = client
+                    .get(format!("http://127.0.0.1:{port}/{path}"))
+                    .bearer_auth("fixture-token")
+                    .header(reqwest::header::CONNECTION, "close")
+                    .send()
+                    .await
+                    .expect("Fixture request succeeds");
+                assert_eq!(response.status(), StatusCode::OK);
+                let body: Value = response.json().await.expect("Fixture response is JSON");
+                assert_eq!(body[0][field], expected);
+            }
+        };
+        tokio::join!(server, client);
+    }
 }

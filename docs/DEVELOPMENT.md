@@ -204,7 +204,7 @@ Record any checks that you cannot complete in the release notes:
 
 `native_bank_server.rs` permits authenticated GET requests to seven bank routes and `/health`. It rejects browser origins, incorrect Host headers, writes, and unrelated routes. It parses queries before any source request. `backend_handshake.rs` accepts the production Akahu URL or a local fixture URL only.
 
-`akahu_bank_data.rs` owns the Akahu client, pagination, transient retries, and caches. Each page has a twenty-second budget that includes retries. The client rejects redirects. It permits five retries after the initial request and honors `Retry-After`. `akahu_wire.rs` parses source records and converts them to bank models.
+`bank_data_provider.rs` defines the provider-neutral account, freshness, and transaction reads used by the local API. Backend startup constructs Akahu and passes it to the request handler; no provider selection or additional connection flow exists yet. `akahu_bank_data.rs` implements that boundary and owns the Akahu client, pagination, transient retries, and caches. Each page has a twenty-second budget that includes retries. The client rejects redirects. It permits five retries after the initial request and honors `Retry-After`. `akahu_wire.rs` parses source records and converts them to bank models.
 
 Swift sends the same `X-Reckon-Snapshot` UUID on all eight requests in a dashboard refresh. The first history read starts on the first day six months before the current Auckland month. Each section applies its own date range. Requests outside this range read their full range directly.
 
@@ -212,7 +212,7 @@ The account cache retains one successful result for five minutes. The snapshot c
 
 The caches disappear after each native refresh.
 
-`bank_derivations.rs` owns pure bank calculations. It uses decimal arithmetic and the existing fixed 7/14/30/91-day intervals for recurring estimates. `bank_calendar.rs` owns calendar operations. `bank_models.rs` owns bank identities and decimal JSON output. These modules preserve the native API contract without a second service interface that only forwards calls.
+`bank_derivations.rs` owns pure bank calculations. It uses decimal arithmetic and the existing fixed 7/14/30/91-day intervals for recurring estimates. `bank_calendar.rs` owns calendar operations. `bank_models.rs` owns bank identities and decimal JSON output. These modules preserve the native API contract and operate on provider-neutral bank models.
 
 `Sources/ReckonApp` owns SwiftUI, the status item, authentication, and Keychain access. The backend contains no database, budgets, goals, category rules, or write operations.
 

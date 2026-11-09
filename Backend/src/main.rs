@@ -2,6 +2,7 @@ mod akahu_bank_data;
 mod akahu_wire;
 mod backend_handshake;
 mod bank_calendar;
+mod bank_data_provider;
 mod bank_derivations;
 mod bank_models;
 mod native_bank_server;
@@ -83,7 +84,7 @@ async fn main() {
             let token = token.clone();
             tokio::task::spawn_local(async move {
                 let service = service_fn(|request| {
-                    native_bank_server::serve_bank_request(request, port, &token, &bank)
+                    native_bank_server::serve_bank_request(request, port, &token, bank.as_ref())
                 });
                 // HTTP/1's default half-close behavior drops the request on disconnect, cancelling upstream I/O.
                 let _ = http1::Builder::new()
