@@ -158,6 +158,8 @@ struct ReckonWindowCheckRunner {
               let navigation = Mirror(reflecting: delegate).children.first(where: { $0.label == "desktopNavigation" })?.value as? ReckonDesktopNavigation else {
             throw WindowCheckFailure(description: "Could not inspect the shared desktop dependencies")
         }
+        try await waitForWindowState("sample backend dashboard") { store.dashboard != nil || store.loadError != nil }
+        try expectWindow(store.dashboard != nil, "Sample backend did not load the dashboard: \(store.loadError ?? "unknown error")")
         let popover = try storedPopover(delegate)
         popover.performClose(nil)
         try expectWindow(NSApp.sendAction(NSSelectorFromString("openDesktop"), to: delegate, from: nil), "Open app action was not connected")

@@ -78,7 +78,6 @@ struct BankDesktopSpendingView: View {
             }
             .environment(\.calendar, BankCalendar.calendar).environment(\.timeZone, BankCalendar.calendar.timeZone)
             if let rangeError { Text(rangeError).font(.caption).foregroundStyle(.orange) }
-            if store.isDemo && selectedRange != nil { Text("Sample data is not filtered by date.").font(.caption).foregroundStyle(.secondary) }
             if dashboard.hasMultipleCurrencies {
                 Label("Mixed currencies · amounts are unconverted", systemImage: "exclamationmark.circle")
                     .font(.system(size: 11)).foregroundStyle(.orange)

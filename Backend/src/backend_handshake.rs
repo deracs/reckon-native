@@ -60,9 +60,52 @@ impl BackendHandshake {
     }
 }
 
+/// Startup selects exactly one provider; sample mode accepts no credentials or source URL.
+pub(crate) enum BackendStartup {
+    Akahu(BackendHandshake),
+    Sample { api_token: BackendSecret },
+}
+
+impl BackendStartup {
+    pub(crate) fn parse_startup(raw: &[u8]) -> Result<Self, ()> {
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase", deny_unknown_fields)]
+        struct SampleStartup {
+            mode: String,
+            api_token: BackendSecret,
+        }
+        let value: serde_json::Value = serde_json::from_slice(raw).map_err(|_| ())?;
+        if value.get("mode").is_some() {
+            let sample: SampleStartup = serde_json::from_value(value).map_err(|_| ())?;
+            return if sample.mode == "sample" {
+                Ok(Self::Sample {
+                    api_token: sample.api_token,
+                })
+            } else {
+                Err(())
+            };
+        }
+        Ok(Self::Akahu(BackendHandshake::parse_handshake(raw)?))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn sample_startup_accepts_no_credentials_or_source_url() {
+        assert!(matches!(
+            BackendStartup::parse_startup(br#"{"mode":"sample","apiToken":"fixture-api"}"#),
+            Ok(BackendStartup::Sample { .. })
+        ));
+        for raw in [
+            br#"{"mode":"sample","apiToken":"fixture-api","appToken":"secret"}"#.as_slice(),
+            br#"{"mode":"sample","apiToken":"fixture-api","akahuBaseURL":"http://localhost:1234/v1"}"#.as_slice(),
+            br#"{"mode":"unknown","apiToken":"fixture-api"}"#.as_slice(),
+            br#"{"mode":"sample","apiToken":""}"#.as_slice(),
+        ] { assert!(BackendStartup::parse_startup(raw).is_err()); }
+    }
+
     #[test]
     fn handshake_preserves_fixture_url_acronym_and_redacts_secrets() {
         let handshake = BackendHandshake::parse_handshake(br#"{"appToken":"fixture-app","userToken":"fixture-user","apiToken":"fixture-api","akahuBaseURL":"http://127.0.0.1:4321/v1"}"#).unwrap();

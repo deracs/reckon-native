@@ -94,8 +94,8 @@ struct BankDashboardView: View {
 
             HStack {
                 Button("Reload stats", systemImage: "arrow.clockwise") { store.reloadDashboard() }
-                    .disabled(!store.isConfigured || store.isLoading || store.isDemo)
-                    .help("Read the current Akahu data. Bank data refreshes separately.")
+                    .disabled((!store.isConfigured && !store.isDemo) || store.isLoading)
+                    .help(store.isDemo ? "Reload sample data." : "Read the current Akahu data. Bank data refreshes separately.")
                 Spacer()
                 Button("Open app", systemImage: "arrow.up.left.and.arrow.down.right", action: openDesktop)
                     .help("Open the desktop dashboard")
@@ -117,7 +117,7 @@ struct BankDashboardView: View {
                 .font(.system(size: 28)).foregroundStyle(.secondary)
             if store.isLoading {
                 Text("Reading Reckon…").font(.headline)
-                Text("Balances and stats from your Akahu accounts.").font(.callout).foregroundStyle(.secondary)
+                Text(store.isDemo ? "Loading fictional sample data." : "Balances and stats from your Akahu accounts.").font(.callout).foregroundStyle(.secondary)
             } else if let error = store.loadError ?? store.connectionError {
                 Text("Couldn’t read Reckon").font(.headline)
                 Text(error).font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)

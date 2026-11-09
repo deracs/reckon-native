@@ -156,7 +156,7 @@ struct ReckonDesktopView: View {
             if store.isLoading { ProgressView().controlSize(.small).accessibilityLabel("Reading bank data") }
             else {
                 Button { store.reloadDashboard() } label: { Image(systemName: "arrow.clockwise") }
-                    .buttonStyle(.plain).disabled(store.isDemo || !store.isConfigured).help("Reload stats").accessibilityLabel("Reload stats")
+                    .buttonStyle(.plain).disabled(!store.isDemo && !store.isConfigured).help("Reload stats").accessibilityLabel("Reload stats")
             }
             if softwareUpdates.checkState.isChecking { ProgressView().controlSize(.small).accessibilityLabel("Checking for updates") }
             else if let notice = softwareUpdates.updateNotice {

@@ -1,6 +1,6 @@
 # Proposal: a boundary for banking integrations
 
-Status: the initial provider boundary is implemented with Akahu as the only production provider. The later stages remain proposals.
+Status: the provider boundary is implemented with Akahu and an offline sample provider. Akahu is the only real banking provider; later stages remain proposals.
 
 ## Problem
 
@@ -20,9 +20,10 @@ filtering, summaries, recurring transactions, and forecasting.
 ```text
 Swift interface and connection management
         ↓ credentials over the existing private startup channel
-Backend startup constructs the Akahu provider
+Backend startup selects Akahu or the offline sample provider
         ↓ supplies the provider to request handling
 Request handling → banking data provider → Akahu adapter → Akahu API
+                                        ↘ sample provider → fictional records
         ↓                   ↓
 Shared bank calculations   accounts, freshness, transactions
         ↓
@@ -39,7 +40,7 @@ Backend startup already constructs the Akahu client and passes it into request
 handling. That was dependency injection with a concrete dependency. Request
 handling now depends on a provider contract and receives its implementation at
 startup. This gives the handlers a seam for a future provider
-and for a fixture implementation. Rust generics, a trait object, or an enum are
+and for the offline sample implementation. Rust generics, a trait object, or an enum are
 possible ways to express it. The implementation uses a generic trait bound and
 static dispatch. A container, dynamic plugin loader, and third-party extension
 API are not required.

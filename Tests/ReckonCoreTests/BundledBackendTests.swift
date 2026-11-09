@@ -48,6 +48,16 @@ struct BundledBackendTests: Sendable {
         try bankExpect(backend.isRunning)
     }
 
+    @MainActor func sampleProviderLoadsDashboardAndFiltersSpending() async throws {
+        let dashboard = try await BundledBackend.fetchDashboard(bundleURL: appBundle, source: .sample)
+        try bankExpect(dashboard.accounts.map(\.id) == ["spending", "savings", "investment"])
+        try bankExpect(dashboard.transactions.value?.isEmpty == false)
+        try bankExpect(dashboard.forecast.value != nil)
+        try bankExpect(dashboard.spending.value?.isEmpty == false)
+        let oldSpending = try await BundledBackend.fetchSpending(bundleURL: appBundle, source: .sample, from: "2000-01-01", to: "2000-01-31")
+        try bankExpect(oldSpending.isEmpty)
+    }
+
     @MainActor func missingBundleProducesAnActionableFailure() async throws {
         let backend = BundledBackend(bundleURL: appBundle.appendingPathComponent("missing-bundle"))
         do {

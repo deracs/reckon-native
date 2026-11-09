@@ -47,7 +47,7 @@ Build the app before the checks. The Swift checks exercise the bundled process. 
 
 The Swift checks use an executable runner because the standalone Command Line Tools omit the Swift Testing and XCTest modules.
 
-The window lifecycle checks require an idle, logged-in macOS desktop. They drive the app's actual menu-bar and Settings actions with sample data, without reading credentials or starting a backend. They cover reopening the dropdown while Settings is visible, inactive, hidden, minimized, or closed, and restoring the existing Settings window. Desktop checks cover the shared store and authentication session, comparison baseline, Settings, search navigation, account-selector hit testing and keyboard focus, native account selection, minimize and restore, lock clearing private selections, close and reopen, and saved window size. They also exercise Sparkle's completion callbacks without network requests. Core checks cover the automatic-check cooldown, preferences, and saved results.
+The window lifecycle checks require an idle, logged-in macOS desktop. They drive the app's actual menu-bar and Settings actions with sample data from the bundled backend, without reading credentials. They cover reopening the dropdown while Settings is visible, inactive, hidden, minimized, or closed, and restoring the existing Settings window. Desktop checks cover the shared store and authentication session, comparison baseline, Settings, search navigation, account-selector hit testing and keyboard focus, native account selection, minimize and restore, lock clearing private selections, close and reopen, and saved window size. They also exercise Sparkle's completion callbacks without network requests. Core checks cover the automatic-check cooldown, preferences, and saved results.
 
 The inactive-Settings check uses a separate fixture app for the focus handoff. It waits for macOS to activate that app before the next menu-bar click. This prevents a delayed deactivation that can close a later dropdown. Both fixture apps exit after the check.
 
@@ -86,7 +86,7 @@ open -n dist/Reckon.app --args --demo --preview
 open -n dist/Reckon.app --args --demo --desktop
 ```
 
-Demo mode displays a sample-data label and skips authentication for UI checks. It does not read the saved credentials or start a backend. Only these fixtures are available in demo mode. The `--preview` option opens the dropdown in a window. `--desktop` opens the full desktop interface. Use a separate bundle identifier for a QA app if the installed Reckon is running. Never replace an installed app solely to capture sample screenshots.
+Demo mode displays a sample-data label and skips authentication for UI checks. It does not read saved credentials or bank history. It starts the bundled backend with an offline sample provider; the provider makes no external requests. The `--preview` option opens the dropdown in a window. `--desktop` opens the full desktop interface. Use a separate bundle identifier for a QA app if the installed Reckon is running. Never replace an installed app solely to capture sample screenshots.
 
 ## Desktop window
 
@@ -204,7 +204,7 @@ Record any checks that you cannot complete in the release notes:
 
 `native_bank_server.rs` permits authenticated GET requests to seven bank routes and `/health`. It rejects browser origins, incorrect Host headers, writes, and unrelated routes. It parses queries before any source request. `backend_handshake.rs` accepts the production Akahu URL or a local fixture URL only.
 
-`bank_data_provider.rs` defines the provider-neutral account, freshness, and transaction reads used by the local API. Backend startup constructs Akahu and passes it to the request handler; no provider selection or additional connection flow exists yet. `akahu_bank_data.rs` implements that boundary and owns the Akahu client, pagination, transient retries, and caches. Each page has a twenty-second budget that includes retries. The client rejects redirects. It permits five retries after the initial request and honors `Retry-After`. `akahu_wire.rs` parses source records and converts them to bank models.
+`bank_data_provider.rs` defines the provider-neutral account, freshness, and transaction reads used by the local API. Backend startup selects Akahu for a normal connection or the offline sample provider for demo mode and passes it to the request handler. No additional real-provider connection flow exists yet. `akahu_bank_data.rs` implements that boundary and owns the Akahu client, pagination, transient retries, and caches. Each page has a twenty-second budget that includes retries. The client rejects redirects. It permits five retries after the initial request and honors `Retry-After`. `akahu_wire.rs` parses source records and converts them to bank models.
 
 Swift sends the same `X-Reckon-Snapshot` UUID on all eight requests in a dashboard refresh. The first history read starts on the first day six months before the current Auckland month. Each section applies its own date range. Requests outside this range read their full range directly.
 

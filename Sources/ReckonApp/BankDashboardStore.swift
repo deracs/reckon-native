@@ -35,19 +35,8 @@ final class BankDashboardStore: ObservableObject {
     init(isDemo: Bool = false) {
         self.isDemo = isDemo
         if isDemo {
-            do {
-                let sample = try BankDashboard.sampleDashboard()
-                dashboard = sample
-                for offset in (-13)...0 {
-                    for account in sample.accounts {
-                        let day = BankCalendar.addDays(offset, to: sample.window.today) ?? sample.window.today
-                        journal.samples[account.id, default: []].append(BankBalanceSample(day: day,
-                            balance: account.balance.value + Decimal(offset * 80), currency: account.currency))
-                    }
-                }
-            }
-            catch { loadError = "Could not load the sample dashboard." }
             manualAccounts = [ManualFinancialAccount(name: "Sample KiwiSaver", kind: "KiwiSaver", currency: "NZD", balance: 25000)]
+            reloadDashboard()
             return
         }
         do {
@@ -170,6 +159,7 @@ final class BankDashboardStore: ObservableObject {
     }
 
     func disconnect() {
+        guard !isDemo else { return }
         do {
             try AkahuKeychain.deleteCredentials()
             resetLocalHistory()
@@ -185,34 +175,49 @@ final class BankDashboardStore: ObservableObject {
     }
 
     func reloadDashboard() {
-        guard !isDemo, !isLoading, let credentials else { return }
+        guard !isLoading else { return }
+        let source: BackendDataSource
+        if isDemo { source = .sample }
+        else if let credentials { source = .akahu(credentials) }
+        else { return }
         isLoading = true
         let requestGeneration = generation
         loadTask = Task { [weak self] in
             guard let self else { return }
             do {
                 let dashboard = try await BundledBackend.fetchDashboard(
-                    bundleURL: Bundle.main.bundleURL, credentials: credentials
+                    bundleURL: Bundle.main.bundleURL, source: source
                 )
                 try Task.checkCancellation()
                 guard self.generation == requestGeneration else { return }
                 self.dashboard = dashboard
+                if self.isDemo && self.journal.samples.isEmpty {
+                    for offset in (-13)...0 {
+                        for account in dashboard.accounts {
+                            let day = BankCalendar.addDays(offset, to: dashboard.window.today) ?? dashboard.window.today
+                            self.journal.samples[account.id, default: []].append(BankBalanceSample(day: day,
+                                balance: account.balance.value + Decimal(offset * 80), currency: account.currency))
+                        }
+                    }
+                }
                 self.recordDashboard(dashboard)
                 self.loadError = nil
                 self.isLoading = false
             } catch {
                 guard self.generation == requestGeneration, !Task.isCancelled else { return }
-                self.loadError = error.localizedDescription
+                self.loadError = self.isDemo ? "Could not load sample data. Try reloading." : error.localizedDescription
                 self.isLoading = false
             }
         }
     }
 
     func fetchSpending(from: String, to: String) async throws -> [CategorySpending] {
-        if isDemo { return dashboard?.spending.value ?? [] }
-        guard let credentials else { throw ReckonAPIError.missingToken }
+        let source: BackendDataSource
+        if isDemo { source = .sample }
+        else if let credentials { source = .akahu(credentials) }
+        else { throw ReckonAPIError.missingToken }
         let requestGeneration = generation
-        let rows = try await BundledBackend.fetchSpending(bundleURL: Bundle.main.bundleURL, credentials: credentials, from: from, to: to)
+        let rows = try await BundledBackend.fetchSpending(bundleURL: Bundle.main.bundleURL, source: source, from: from, to: to)
         try Task.checkCancellation()
         guard generation == requestGeneration else { throw CancellationError() }
         return rows
