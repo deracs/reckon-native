@@ -62,7 +62,7 @@ private struct ReckonAuthenticationError: LocalizedError {
     var errorDescription: String? { message }
 }
 
-/// Demo mode only displays fixtures and never reads Keychain or starts the backend.
+/// Demo mode displays fictional data and never reads saved Keychain credentials.
 @MainActor
 final class ReckonDemoAuthentication: ReckonAuthenticating {
     func authenticate() async throws {}

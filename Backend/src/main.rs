@@ -2,15 +2,21 @@ mod akahu_bank_data;
 mod akahu_wire;
 mod backend_handshake;
 mod bank_calendar;
+mod bank_data_provider;
 mod bank_derivations;
 mod bank_models;
 mod native_bank_server;
+mod sample_bank_data;
 
 use akahu_bank_data::AkahuBankData;
-use backend_handshake::BackendHandshake;
+use backend_handshake::BackendStartup;
+use bank_data_provider::{BankDataProvider, BankReadError, BankTransactionView};
+use bank_models::{AccountFreshness, BankAccount};
+use chrono::NaiveDate;
 use hyper::server::conn::http1;
 use hyper::service::service_fn;
 use hyper_util::rt::TokioIo;
+use sample_bank_data::SampleBankData;
 use std::io::{BufRead, Read, Write};
 use std::sync::Arc;
 use std::time::Duration;
@@ -31,7 +37,7 @@ async fn main() {
         let mut raw = Vec::new();
         let read = input.by_ref().take(32769).read_until(b'\n', &mut raw);
         let parsed = if read.is_ok() && raw.len() <= 32768 && raw.last() == Some(&b'\n') {
-            BackendHandshake::parse_handshake(&raw)
+            BackendStartup::parse_startup(&raw)
         } else {
             Err(())
         };
@@ -60,10 +66,17 @@ async fn main() {
             Ok(Ok(Ok(handshake))) => handshake,
             _ => fail_startup(),
         };
-        let bank = match AkahuBankData::new(&handshake) {
-            Ok(bank) => Arc::new(bank),
-            Err(_) => fail_startup(),
+        let (bank, token) = match handshake {
+            BackendStartup::Akahu(handshake) => {
+                let bank = AkahuBankData::new(&handshake).unwrap_or_else(|_| fail_startup());
+                (ConfiguredBankData::Akahu(bank), handshake.api_token)
+            }
+            BackendStartup::Sample { api_token } => {
+                (ConfiguredBankData::Sample(SampleBankData::new()), api_token)
+            }
         };
+        let bank = Arc::new(bank);
+        let token = Arc::new(token);
         let listener = match TcpListener::bind("127.0.0.1:0").await {
             Ok(listener) => listener,
             Err(_) => fail_startup(),
@@ -72,7 +85,6 @@ async fn main() {
             Ok(address) => address.port(),
             Err(_) => fail_startup(),
         };
-        let token = Arc::new(handshake.api_token);
         println!("{{\"event\":\"ready\",\"port\":{port}}}");
         let _ = std::io::stdout().flush();
         loop {
@@ -83,7 +95,7 @@ async fn main() {
             let token = token.clone();
             tokio::task::spawn_local(async move {
                 let service = service_fn(|request| {
-                    native_bank_server::serve_bank_request(request, port, &token, &bank)
+                    native_bank_server::serve_bank_request(request, port, &token, bank.as_ref())
                 });
                 // HTTP/1's default half-close behavior drops the request on disconnect, cancelling upstream I/O.
                 let _ = http1::Builder::new()
@@ -102,4 +114,36 @@ fn fail_startup() -> ! {
     println!("{{\"event\":\"failed\"}}");
     let _ = std::io::stdout().flush();
     std::process::exit(1)
+}
+
+/// The backend selects one built-in provider for the lifetime of a refresh.
+enum ConfiguredBankData {
+    Akahu(AkahuBankData),
+    Sample(SampleBankData),
+}
+
+impl BankDataProvider for ConfiguredBankData {
+    async fn list_bank_accounts(&self) -> Result<Vec<BankAccount>, BankReadError> {
+        match self {
+            Self::Akahu(bank) => bank.list_bank_accounts().await,
+            Self::Sample(bank) => bank.list_bank_accounts().await,
+        }
+    }
+    async fn list_account_freshness(&self) -> Result<Vec<AccountFreshness>, BankReadError> {
+        match self {
+            Self::Akahu(bank) => bank.list_account_freshness().await,
+            Self::Sample(bank) => bank.list_account_freshness().await,
+        }
+    }
+    async fn fetch_bank_transactions(
+        &self,
+        from: Option<NaiveDate>,
+        to: Option<NaiveDate>,
+        snapshot: Option<&str>,
+    ) -> Result<BankTransactionView, BankReadError> {
+        match self {
+            Self::Akahu(bank) => bank.fetch_bank_transactions(from, to, snapshot).await,
+            Self::Sample(bank) => bank.fetch_bank_transactions(from, to, snapshot).await,
+        }
+    }
 }

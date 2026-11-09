@@ -56,6 +56,12 @@ private final class BackendChild {
     init(apiToken: String) { self.apiToken = apiToken }
 }
 
+/// Selects the source for a short-lived backend without reading saved credentials.
+public enum BackendDataSource: Sendable {
+    case akahu(AkahuCredentials)
+    case sample
+}
+
 /// Owns a bundled Rust child and its authenticated loopback API; dashboard refreshes scope its lifetime.
 @MainActor
 public final class BundledBackend {
@@ -74,9 +80,14 @@ public final class BundledBackend {
 
     /// Fetches one dashboard and releases the backend process on success, failure, or cancellation.
     public static func fetchDashboard(bundleURL: URL, credentials: AkahuCredentials) async throws -> BankDashboard {
+        try await fetchDashboard(bundleURL: bundleURL, source: .akahu(credentials))
+    }
+
+    /// Fetches a dashboard using the selected bank data source.
+    public static func fetchDashboard(bundleURL: URL, source: BackendDataSource) async throws -> BankDashboard {
         let backend = BundledBackend(bundleURL: bundleURL)
         defer { backend.stop() }
-        let connection = try await backend.start(credentials: credentials)
+        let connection = try await backend.start(source: source)
         let client = ReckonAPIClient(connection: connection)
         defer { client.invalidateSession() }
         let dashboard = try await client.fetchDashboard()
@@ -87,9 +98,14 @@ public final class BundledBackend {
 
     /// Reads a selected spending period and releases the backend after the request.
     public static func fetchSpending(bundleURL: URL, credentials: AkahuCredentials, from: String, to: String) async throws -> [CategorySpending] {
+        try await fetchSpending(bundleURL: bundleURL, source: .akahu(credentials), from: from, to: to)
+    }
+
+    /// Reads a selected spending period from the selected bank data source.
+    public static func fetchSpending(bundleURL: URL, source: BackendDataSource, from: String, to: String) async throws -> [CategorySpending] {
         let backend = BundledBackend(bundleURL: bundleURL)
         defer { backend.stop() }
-        let connection = try await backend.start(credentials: credentials)
+        let connection = try await backend.start(source: source)
         let client = ReckonAPIClient(connection: connection)
         defer { client.invalidateSession() }
         let spending = try await client.fetchSpending(from: from, to: to)
@@ -104,6 +120,11 @@ public final class BundledBackend {
     }
 
     public func start(credentials: AkahuCredentials) async throws -> ReckonConnection {
+        try await start(source: .akahu(credentials))
+    }
+
+    /// Starts either the saved Akahu connection or the offline sample provider.
+    public func start(source: BackendDataSource) async throws -> ReckonConnection {
         stop()
         try Task.checkCancellation()
         let executable = bundleURL.appendingPathComponent("Contents/Helpers/reckon-backend")
@@ -138,11 +159,19 @@ public final class BundledBackend {
         }
 
         struct Handshake: Encodable {
-            let appToken: String
-            let userToken: String
+            let mode: String?
+            let appToken: String?
+            let userToken: String?
             let apiToken: String
         }
-        var input = try JSONEncoder().encode(Handshake(appToken: credentials.appToken, userToken: credentials.userToken, apiToken: child.apiToken))
+        let handshake: Handshake
+        switch source {
+        case .akahu(let credentials):
+            handshake = Handshake(mode: nil, appToken: credentials.appToken, userToken: credentials.userToken, apiToken: child.apiToken)
+        case .sample:
+            handshake = Handshake(mode: "sample", appToken: nil, userToken: nil, apiToken: child.apiToken)
+        }
+        var input = try JSONEncoder().encode(handshake)
         input.append(0x0A)
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in

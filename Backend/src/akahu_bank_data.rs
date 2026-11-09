@@ -1,7 +1,10 @@
 use crate::akahu_wire::{AkahuAccount, AkahuPage, AkahuPendingTransaction, AkahuTransaction};
 use crate::backend_handshake::BackendHandshake;
 use crate::bank_calendar::{add_bank_months, bank_today};
-use crate::bank_models::BankTransaction;
+use crate::bank_data_provider::{
+    BankDataProvider, BankReadError, BankSnapshot, BankTransactionView,
+};
+use crate::bank_models::{AccountFreshness, BankAccount, BankTransaction};
 use chrono::{Datelike, Duration as BankDuration, NaiveDate, Utc};
 use futures_util::{StreamExt, TryStreamExt, stream};
 use reqwest::{Client, StatusCode};
@@ -10,15 +13,6 @@ use std::collections::VecDeque;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
-
-/// Safe failure tags never contain request URLs, credentials, or source bodies.
-#[derive(Debug)]
-pub(crate) enum BankReadError {
-    Transport,
-    Http,
-    Decode,
-    Timeout,
-}
 
 // Match encodeURIComponent so source account IDs retain Akahu's path spelling.
 const AKAHU_ACCOUNT_PATH: &percent_encoding::AsciiSet = &percent_encoding::NON_ALPHANUMERIC
@@ -33,28 +27,7 @@ const AKAHU_ACCOUNT_PATH: &percent_encoding::AsciiSet = &percent_encoding::NON_A
     .remove(b')');
 
 type BankCache<T> = Mutex<Option<(Instant, Arc<T>)>>;
-struct BankSnapshot {
-    from: NaiveDate,
-    to: NaiveDate,
-    transactions: Vec<BankTransaction>,
-}
 type SnapshotSlot = Arc<BankCache<BankSnapshot>>;
-
-/// A transaction view retains shared snapshot storage while iterators borrow its records.
-pub(crate) struct BankTransactionView {
-    snapshot: Arc<BankSnapshot>,
-    range: Option<std::ops::RangeInclusive<NaiveDate>>,
-}
-impl BankTransactionView {
-    /// Borrow records in the requested range; direct source reads preserve pending-row behavior.
-    pub(crate) fn iter(&self) -> impl Iterator<Item = &BankTransaction> {
-        self.snapshot.transactions.iter().filter(|transaction| {
-            self.range
-                .as_ref()
-                .is_none_or(|range| range.contains(&transaction.date))
-        })
-    }
-}
 
 /// Akahu reads own pagination, bounded retries and cancellable single-flight caches.
 pub(crate) struct AkahuBankData {
@@ -189,9 +162,7 @@ impl AkahuBankData {
             }
         }
     }
-    pub(crate) async fn list_source_accounts(
-        &self,
-    ) -> Result<Arc<Vec<AkahuAccount>>, BankReadError> {
+    async fn list_source_accounts(&self) -> Result<Arc<Vec<AkahuAccount>>, BankReadError> {
         let mut cache = self.accounts.lock().await;
         if let Some((saved, accounts)) = cache.as_ref()
             && saved.elapsed() < Duration::from_secs(300)
@@ -260,7 +231,7 @@ impl AkahuBankData {
     }
 
     /// Reuse shared snapshot records while retaining single-flight source reads.
-    pub(crate) async fn fetch_transactions(
+    async fn fetch_transactions(
         &self,
         from: Option<NaiveDate>,
         to: Option<NaiveDate>,
@@ -322,6 +293,35 @@ impl AkahuBankData {
             snapshot,
             range: Some(from..=to),
         })
+    }
+}
+
+impl BankDataProvider for AkahuBankData {
+    async fn list_bank_accounts(&self) -> Result<Vec<BankAccount>, BankReadError> {
+        Ok(self
+            .list_source_accounts()
+            .await?
+            .iter()
+            .map(|account| account.to_bank_account())
+            .collect())
+    }
+
+    async fn list_account_freshness(&self) -> Result<Vec<AccountFreshness>, BankReadError> {
+        Ok(self
+            .list_source_accounts()
+            .await?
+            .iter()
+            .map(|account| account.to_account_freshness())
+            .collect())
+    }
+
+    async fn fetch_bank_transactions(
+        &self,
+        from: Option<NaiveDate>,
+        to: Option<NaiveDate>,
+        snapshot: Option<&str>,
+    ) -> Result<BankTransactionView, BankReadError> {
+        self.fetch_transactions(from, to, snapshot).await
     }
 }
 
